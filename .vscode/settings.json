@@ -1,0 +1,5 @@
+{
+    "python.pythonPath": "c:\\Users\\metol\\.conda\\envs\\env_tf_gpu\\python.exe",
+    "python.linting.pylintEnabled": true,
+    "python.linting.enabled": true
+}

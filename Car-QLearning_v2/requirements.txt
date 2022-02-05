@@ -1,0 +1,4 @@
+pyglet
+pygame
+tensorflow
+numpy
