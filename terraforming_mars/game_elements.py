@@ -33,15 +33,8 @@ class Resource(game_elem):
     def __init__(self, name) -> None:
         self.name = name
         self.qty = 0
-        if self.name in ['plant', 'heat']:
-            self.terraformable = True
-        else:
-            self.terraformable = False
-
-        if self.name in ['steel', 'titanium']:
-            self.convertible = True
-        else:
-            self.convertible = False
+        self.terraformable = self.name in ['plant', 'heat']
+        self.convertible = self.name in ['steel', 'titanium', 'energy']
 
 
 class Player():

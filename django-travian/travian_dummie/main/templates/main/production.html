@@ -1,0 +1,17 @@
+{% extends "main/base.html" %}
+
+{% block title%}
+    View Resources
+{% endblock %}
+
+{% block content%}
+    {% for item in aldea.resource_set.all %}
+        <li>{{item.name}}: {{item.number}} + {{item.production}}/h</li>
+        <form method='post' action='/increase/'>
+            {% csrf_token %}
+            {{form}}
+            <button type='submit', name='save'> Increase {{item.name}} production</button>
+        </form>
+    {% endfor %}
+    </ul>
+{% endblock %}

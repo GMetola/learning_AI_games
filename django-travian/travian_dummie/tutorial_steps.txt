@@ -1,0 +1,12 @@
+conda create -n django_html django
+conda activate django_html
+django-admin startproject travian_dummie
+cd .\travian_dummie\
+python manage.py runserver  <-- just a test, close the window afterwards
+python manage.py startapp main
+python manage.py migrate
+
+
+python .\manage.py makemigrations main  <--- equivalent to the 'add' of a version control
+python manage.py migrate <--- equivalent to the 'commit' of a version control
+in the migrations folder you can see the history of those 'commits' and revert them.
