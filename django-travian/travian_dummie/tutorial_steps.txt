@@ -10,3 +10,8 @@ python manage.py migrate
 python .\manage.py makemigrations main  <--- equivalent to the 'add' of a version control
 python manage.py migrate <--- equivalent to the 'commit' of a version control
 in the migrations folder you can see the history of those 'commits' and revert them.
+
+
+Next:
+- Make changes on existing objects.
+- Make buttons post changes
