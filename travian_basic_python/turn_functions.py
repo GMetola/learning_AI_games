@@ -25,4 +25,5 @@ def purchase_improvement(dorf, improvement_id) -> None:
 
 
 def consistency_check(dorf):
+    """Test storage"""
     assert dorf.positive_storage_check()
