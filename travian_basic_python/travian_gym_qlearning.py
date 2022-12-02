@@ -8,11 +8,11 @@ import numpy as np
 import PIL.Image as Image
 
 from gym import Env, spaces
+from turn_functions import purchase_improvement
 
 
 class Village(Env):
     """Creates a Village where we will build mines"""
-    points = 0
     def __init__(self, num_resources) -> None:
         # inhereting from gym Env
         super(Village, self).__init__()
@@ -29,10 +29,8 @@ class Village(Env):
         # your actions are just to level up mines or economize (save resources)
         self.action_space = spaces.Discrete(self.num_resources + 1,)
 
-        # Define elements present inside the environment
-        self.resources = np.zeros(self.num_resources)
-        self.production = np.ones(self.num_resources)
-        self.mine_level = np.ones(self.num_resources)
+        # Define basic elements of a new game
+        self.reset()
 
         # TODO Define mine costs and productions
 
@@ -45,13 +43,30 @@ class Village(Env):
 
     def reset(self):
         """Start new game"""
+        # Buildings
         self.resources = np.zeros(self.num_resources)
         self.production = np.ones(self.num_resources)
         self.mine_level = np.ones(self.num_resources)
 
+        # Game state
         self.points = np.sum(self.resources)
+        self.turn_number = 0
 
-    def step(self):
+    def get_action_meanings(self):
+        """Meaning of actions"""
+        return {0:"Do nothing",
+                1:"Build mine of resource 1",
+                2:"Build mine of resource 2",
+                3:"Build mine of resource 3",
+                4:"Build mine of resource 4"}
+
+    def step(self, action):
         """Each of the turns"""
-        # TODO
-        pass
+        assert self.action_space.contains(action), "Invalid Action"
+
+        self.turn_number += 1
+
+        purchase_improvement(0, action)
+
+
+
