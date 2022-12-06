@@ -3,29 +3,37 @@ Classes needed for the basic game
 """
 import numpy as np  # TODO: evolve numpy arrays to tensors
 
-BUILDING_AMOUNT = 0
 
 class Dorf():
     """
     Class to create villages.
     """
+
+    # ABSOLUTE VALUES
     resource_list = ["wood","clay","iron","wheat"]
+    num_resources = len(resource_list)
     storage = 2000
-    resources = np.ones((1,len(resource_list)))
+    resources = np.ones((1,num_resources))
     BUILDING_AMOUNT = 0
+    imp_costs =   np.array([[1, 100, 100, 100],
+                            [100, 1, 100, 100],
+                            [100, 100, 1, 100],
+                            [100, 100, 100, 1]])
+    imp_growths = np.array([100, 200, 400, 600])
+
     def __init__(self, starting_resources=800, starting_production = 10) -> None:
         self.production = [starting_production]*len(self.resource_list)
+        self.starting_resources = starting_resources
 
+        self.reset_dorf()
 
-        # Improvements
-        imp_costs =   np.array([[1, 100, 100, 100],
-                                [100, 1, 100, 100],
-                                [100, 100, 1, 100],
-                                [100, 100, 100, 1]])
-        woodcutter = Improvement('Woodcutter', imp_costs[0], 100)
-        clay_pit = Improvement('Clay Pit', imp_costs[1], 200)
-        iron_mine = Improvement('Iron Mine', imp_costs[2], 400)
-        crop = Improvement('Crop', imp_costs[3], 600)
+    def reset_dorf(self):
+        """Sets all attributes to their initial value"""
+
+        woodcutter = Improvement(0, 'Woodcutter', self.imp_costs[0], self.imp_growths)
+        clay_pit = Improvement(1, 'Clay Pit', self.imp_costs[1], self.imp_growths)
+        iron_mine = Improvement(2, 'Iron Mine', self.imp_costs[2], self.imp_growths)
+        crop = Improvement(3, 'Crop', self.imp_costs[3], self.imp_growths)
 
         self.buildings = [woodcutter, clay_pit, iron_mine, crop]
         self.building_levels = np.array([woodcutter.level,
@@ -33,7 +41,7 @@ class Dorf():
                                         iron_mine.level,
                                         crop.level])
 
-        self.resources *= starting_resources
+        self.resources = (self.resources * 0) + self.starting_resources
 
     def reduce_storage(self, costs) -> None:
         """Update materials after purchase"""
@@ -43,7 +51,7 @@ class Dorf():
         """Increase materials after turn end"""
         self.resources += self.production
 
-    def positive_storage_check(self):
+    def check_positive_storage(self):
         """Test storage is positive"""
         return (self.resources > -1).all()
 
@@ -58,16 +66,35 @@ class Dorf():
         for building in self.buildings:
             building.print_info()
 
+    def check_purchasing_power(self, improvement_id):
+        """Checks if the town has enough resources to buy the improvement"""
+        improvement = self.buildings[improvement_id -1]  # indexation starts in 0
+        resources = self.resources
+        costs = improvement.cost
+        # TODO: divide requirement per resource type
+        if (resources > costs).all():
+            able = True
+        else:
+            able = False
+        return able
+
+    def purchase_improvement(self, improvement_id) -> None:
+        """Main function to buy an improvement"""
+        if not self.check_purchasing_power(improvement_id):
+            return
+        improved_building = self.buildings[improvement_id -1]  # indexation starts in 0
+        self.reduce_storage(improved_building.cost)
+        improved_building.upgrade()
+        print(f"{improved_building.name} upgraded to level {improved_building.level}!")
+
 
 class Improvement():
     """Class to create buildings to improve the village"""
     level = 1
 
-    def __init__(self, name, cost, growth) -> None:
-        global BUILDING_AMOUNT
+    def __init__(self, index, name, cost, growth) -> None:
         self.name = name
-        self.impr_id = BUILDING_AMOUNT + 1
-        BUILDING_AMOUNT += 1
+        self.impr_id = index
         self.base_cost = cost
         self.cost = cost
         self.growth = growth

@@ -8,18 +8,17 @@ import numpy as np
 import PIL.Image as Image
 
 from gym import Env, spaces
-from turn_functions import purchase_improvement
+from travian_classes import Dorf
 
 
-class Village(Env):
+class Village(Env, Dorf):
     """Creates a Village where we will build mines"""
-    def __init__(self, num_resources) -> None:
+    def __init__(self) -> None:
         # inhereting from gym Env
         super(Village, self).__init__()
 
-        self.num_resources = num_resources
         # Define observation space
-        # The 3 comes from (storage, production, mine_level)
+        # Observation_shape has 3 layers: storage, production, mine_level
         self.observation_shape = (self.num_resources, 3)
         self.observation_space = spaces.Box(low=np.zeros(self.observation_shape),
                                             high=1e6*np.ones(self.observation_shape),
@@ -32,8 +31,6 @@ class Village(Env):
         # Define basic elements of a new game
         self.reset()
 
-        # TODO Define mine costs and productions
-
         # Limitations
         self.max_fuel = 1000
         self.y_min = int (self.observation_shape[0] * 0.1)
@@ -43,12 +40,10 @@ class Village(Env):
 
     def reset(self):
         """Start new game"""
-        # Buildings
-        self.resources = np.zeros(self.num_resources)
-        self.production = np.ones(self.num_resources)
-        self.mine_level = np.ones(self.num_resources)
+        # Reset buildings and resources
+        self.reset_dorf()
 
-        # Game state
+        # Reset game state
         self.points = np.sum(self.resources)
         self.turn_number = 0
 
@@ -62,11 +57,23 @@ class Village(Env):
 
     def step(self, action):
         """Each of the turns"""
+
         assert self.action_space.contains(action), "Invalid Action"
+        self.general_tests()
 
         self.turn_number += 1
+        self.purchase_improvement(action)
 
-        purchase_improvement(0, action)
+        return
+
+    def general_tests(self):
+        """Check that nothing has been broken"""
+        # TODO
+        self.check_positive_storage()
+        self.print_buildings()
 
 
+if __name__ == '__main__':
+    v = Village()
 
+    v.print_buildings()
