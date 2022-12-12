@@ -44,4 +44,10 @@ Main executes a 10-turn game with random choices succesfullly.
 I just found OpenAI's official tutorial
 https://www.gymlibrary.dev/content/environment_creation/
 gym core documentation: https://www.gymlibrary.dev/api/core/
-
+In this documentation finally appear the parameters that step and reset need.
+I will start updating my functions to follow the official ones.
+There are wrappers for observation, reward and actions, but I won't need them because I am building the game from scratch.
+Seems that the observations should be made close to the end of step and reset functions.
+I finish the day having done https://www.gymlibrary.dev/content/environment_creation/#constructing-observations-from-environment-states
+Next is https://www.gymlibrary.dev/content/environment_creation/#reset
+Not test made after I started the official tutorial.
