@@ -44,7 +44,7 @@ class Village(Env, Dorf):
         self.reset_dorf()
 
         # Reset game state
-        self.points = np.sum(self.resources)
+        self.points = np.sum(self.resources).astype(int)
         self.turn_number = 0
 
     def get_action_meanings(self):
@@ -63,17 +63,21 @@ class Village(Env, Dorf):
 
         self.turn_number += 1
         self.purchase_improvement(action)
-
+        self.points = np.sum(self.resources).astype(int)
+        self.harvest()
         return
 
     def general_tests(self):
         """Check that nothing has been broken"""
         # TODO
         self.check_positive_storage()
-        self.print_buildings()
 
 
 if __name__ == '__main__':
-    v = Village()
-
-    v.print_buildings()
+    env = Village()
+    env.reset()
+    for i in range(10):
+        action = env.action_space.sample()
+        env.step(action)
+        print(f"Turn {i} - Points: {env.points}")
+    env.print_buildings()

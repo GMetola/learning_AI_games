@@ -62,9 +62,16 @@ class Dorf():
 
     def print_buildings(self):
         """Buildings built in village"""
+        levels = []
+        for building in self.buildings:
+            levels.append(building.level)
+        print("\nBuilding levels: ", levels)
+
+    def print_building_details(self):
+        """Buildings built in village"""
         print("\nBuildings in Dorf: ")
         for building in self.buildings:
-            building.print_info()
+            building.print_detail_info()
 
     def check_purchasing_power(self, improvement_id):
         """Checks if the town has enough resources to buy the improvement"""
@@ -90,7 +97,7 @@ class Dorf():
 
 class Improvement():
     """Class to create buildings to improve the village"""
-    level = 1
+    level = int(1)
 
     def __init__(self, index, name, cost, growth) -> None:
         self.name = name
@@ -106,7 +113,11 @@ class Improvement():
         self.cost = self.base_cost * self.level
         self.production = self.growth * self.level
 
-    def print_info(self):
+    def print_basic_info(self):
+        """Print building info"""
+        print(f"{self.name} (level {self.level})")
+
+    def print_detail_info(self):
         """Print building info"""
         print("Building info:")
         print(f"{self.name} (level {self.level}) - Production: {self.production}")

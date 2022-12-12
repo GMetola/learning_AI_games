@@ -31,8 +31,17 @@ See "1.- Error" at snippets_log.md
 I keep following https://blog.paperspace.com/creating-custom-environments-openai-gym/
 Legality of actions
 
-### 2022-12-06 | Unify classes
+### 2022-12-06 | Unify classes.
 turn functions was moved into travian_classes' Dorf
 Village class from travian_gym_qlearning was made child of Dorf
 log cleanned, by moving snippets to another file
 tests passed
+
+### 2022-12-12 | Finished first tutorial.
+Little cleanning.
+Main executes a 10-turn game with random choices succesfullly.
+### 2022-12-12 | Start Official OpenAI tutorial
+I just found OpenAI's official tutorial
+https://www.gymlibrary.dev/content/environment_creation/
+gym core documentation: https://www.gymlibrary.dev/api/core/
+
