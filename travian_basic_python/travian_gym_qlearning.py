@@ -73,6 +73,9 @@ class Village(Env, Dorf):
             - info (dictionary) - This dictionary contains auxiliary information complementing observation.
                 It should be analogous to the info returned by step().
         """
+        # We need the following line to seed self.np_random
+        super().reset(seed=seed)
+
         info = {
                 "function":"reset",
                 "turn":self.turn_number,
@@ -155,7 +158,7 @@ class Village(Env, Dorf):
         self.harvest()
         if self.turn_number > self.game_turns:
             done = True
-        return observation, reward, terminated, truncated, info, done
+        return observation, reward, done, info
 
 
     def general_tests(self):

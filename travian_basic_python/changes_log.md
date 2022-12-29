@@ -51,3 +51,18 @@ Seems that the observations should be made close to the end of step and reset fu
 I finish the day having done https://www.gymlibrary.dev/content/environment_creation/#constructing-observations-from-environment-states
 Next is https://www.gymlibrary.dev/content/environment_creation/#reset
 Not test made after I started the official tutorial.
+
+### 2022-12-13 | Finishing Official OpenAI tutorial
+Registering the env with https://www.gymlibrary.dev/content/environment_creation/#registering-envs
+
+### 2022-12-24 | Learning to create package
+First I created a checker that detected some errors.
+```
+    from gym.utils.env_checker import check_env
+    env.check_env()
+```
+I modified reset to return just observation, deleting info
+It also informed that Discrete spaces must contain ints, but mine contained array.int32. I dismissed this error and went to the next step.
+I modified setup.py and installed it with pip (see snippets_log.md)
+Note to self: before installing something you have created, clone the actual working virtualenv...
+I just realized that my changes at 'C:\git\learning_AI_games\gym' (gym version 0.26.0) won't be as impactfull as I thought, because the gym version that conda uses is at 'C:\Users\metol\.conda\envs\tf_gpu_mygames\lib\site-packages\gym' (gym version 0.21.0)
