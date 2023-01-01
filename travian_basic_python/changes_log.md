@@ -66,3 +66,15 @@ It also informed that Discrete spaces must contain ints, but mine contained arra
 I modified setup.py and installed it with pip (see snippets_log.md)
 Note to self: before installing something you have created, clone the actual working virtualenv...
 I just realized that my changes at 'C:\git\learning_AI_games\gym' (gym version 0.26.0) won't be as impactfull as I thought, because the gym version that conda uses is at 'C:\Users\metol\.conda\envs\tf_gpu_mygames\lib\site-packages\gym' (gym version 0.21.0)
+
+### 2023-01-01 | Creating package and saving results
+I installed gym 0.26.2 in conda envs 'base' and 'tf_gpu_mygames'
+To make it work, I modified:
+- C:\Users\metol\.conda\envs\tf_gpu_mygames\Lib\site-packages\gym\envs\classic_control\myenv.py
+- C:\Users\metol\.conda\envs\tf_gpu_mygames\Lib\site-packages\gym\envs\classic_control\__init__.py
+- C:\Users\metol\.conda\envs\tf_gpu_mygames\Lib\site-packages\gym\envs\__init__.py
+I managed to successfully use
+```
+env = gym.make("MyEnv-v0")
+```
+I started to save results at "learning_AI_games\travian_basic_python\hall of fame - travian gym.csv". Now choices are random, so points should be lower now than when I get to apply Q-learning.
