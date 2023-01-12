@@ -78,3 +78,11 @@ I managed to successfully use
 env = gym.make("MyEnv-v0")
 ```
 I started to save results at "learning_AI_games\travian_basic_python\hall of fame - travian gym.csv". Now choices are random, so points should be lower now than when I get to apply Q-learning.
+
+### 2023-01-12 | Reading Markov processes and abandoning GYM
+For a process to be markovian, the probabilities of the future must depend only on the present, not on the past. Thus, we should include in the present every attribute of the game that past decisions have altered.
+
+It cannot incorporate new attributes, the number of attributes must be the same thoughout the game. For example, if a player may choose a particular perk/race/upgrade once per game, that choice must be within the attributes of the Markov Decision Process (MDP) all game long; until the player makes the decision that attribute could be marked as False, but must exist.
+Reading about MDPs, I conclude that this method will only be of use in the future, when I have several players. From the point of view of the machine the decisions of those players will be slightly stochastic, between the most profitable options those players have. Why should we supose an array of stochastic adversary moves instead of the 'best one'? Because humans won't always choose the "best one" or maybe there is a factor the machine is not taking into account.
+Also, my current game isn't stochastic at all, and has a mathematical solution, consistent and deterministic.
+On future games where a deck of cards modifies the state of the game each turn we'll face randomness, maybe Markov will come handly then, but I bet there'll be a more efficient method.
