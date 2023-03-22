@@ -6,7 +6,7 @@ import argparse
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
-from DQN import DQNAgent
+from DQN_mines import DQNAgent
 from random import randint
 import random
 import statistics
@@ -16,6 +16,8 @@ from GPyOpt.methods import BayesianOptimization
 from bayesOpt import *
 import datetime
 import distutils.util
+
+from mines_classes import Player
 
 if torch.cuda.is_available():
     DEVICE = 'cuda'
@@ -28,7 +30,7 @@ else:
 def define_parameters():
     params = dict()
     # Game
-    params['game_size'] = 440
+    params['game_size'] = 800
     # Neural Network
     params['epsilon_decay_linear'] = 1/100
     params['learning_rate'] = 0.00013629
@@ -55,7 +57,7 @@ class Game:
     """ Initialize PyGAME """
 
     def __init__(self, game_width, game_height):
-        pygame.display.set_caption('SnakeGen')
+        pygame.display.set_caption('Mine_Construction')
         self.game_width = game_width
         self.game_height = game_height
         self.gameDisplay = pygame.display.set_mode((game_width, game_height + 60))
@@ -66,7 +68,7 @@ class Game:
         self.score = 0
 
 
-class Player(object):
+class His_Player(object):
     def __init__(self, game):
         x = 0.45 * game.game_width
         y = 0.5 * game.game_height

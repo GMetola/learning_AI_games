@@ -5,9 +5,9 @@ import numpy as np  # TODO: evolve numpy arrays to tensors
 import pygame
 
 
-class Dorf():
+class Player():
     """
-    Class to create villages.
+    Class of a village mayor
     """
 
     # ABSOLUTE VALUES
@@ -126,12 +126,6 @@ class Improvement():
         print(f"Next level -- Cost: {self.cost} -- Production: {next_level_prod}\n")
 
 
-class Game:
-    """ Initialize PyGAME """
-
-    def __init__(self) -> None:
-        pygame.display.set_caption('Travian_DeepQNetwork')
-        self.window_size = 600
 
 
 if __name__ == '__main__':
