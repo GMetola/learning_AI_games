@@ -62,28 +62,28 @@ def test_worker_assignment():
 
     # ESTADO INICIAL
     initial_available = player_board.yellow_reserves['available_workers']
-    initial_agricultura = player_board.yellow_reserves['technology_workers']['Agricultura']
+    initial_agriculture = player_board.yellow_reserves['technology_workers']['Agriculture']
 
-    print(f"Inicial - Disponibles: {initial_available}, Agricultura: {initial_agricultura}")
+    print(f"Inicial - Disponibles: {initial_available}, Agriculture: {initial_agriculture}")
 
     # ASIGNAR TRABAJADOR A AGRICULTURA
-    success = player_board.assign_worker_to_building('Agricultura')
+    success = player_board.assign_worker_to_building('Agriculture')
 
     final_available = player_board.yellow_reserves['available_workers']
-    final_agricultura = player_board.yellow_reserves['technology_workers']['Agricultura']
+    final_agriculture = player_board.yellow_reserves['technology_workers']['Agriculture']
 
-    print(f"Final - Disponibles: {final_available}, Agricultura: {final_agricultura}")
+    print(f"Final - Disponibles: {final_available}, Agriculture: {final_agriculture}")
 
     # VERIFICACIONES
     assert success == True, "Debería poder asignar trabajador"
     assert final_available == initial_available - 1, "Trabajadores disponibles deben disminuir en 1"
-    assert final_agricultura == initial_agricultura + 1, "Trabajadores en Agricultura deben aumentar en 1"
+    assert final_agriculture == initial_agriculture + 1, "Trabajadores en Agriculture deben aumentar en 1"
 
     print("✓ Asignación de trabajador correcta!")
 
     # INTENTAR ASIGNAR SIN TRABAJADORES DISPONIBLES
     player_board.yellow_reserves['available_workers'] = 0
-    success = player_board.assign_worker_to_building('Bronce')
+    success = player_board.assign_worker_to_building('Bronze')
 
     assert success == False, "No debería poder asignar trabajador sin disponibles"
     print("✓ Validación sin trabajadores disponibles correcta!")

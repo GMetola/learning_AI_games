@@ -1,4 +1,6 @@
 Category,Frequency 4 players,Type,Card Name,Age,Tech cost,Build cost,Production Food,Production Material,Production Culture,Production Strength,Production Happy,Production Science,Produce civil action,Produce military action,Gain Food,Gain Material,Gain Culture,Gain Strength,Gain Happy,Gain Science,Gain civil action,Gain military action,Blue token,Yellow token,Included v0.1,Card text and comments
 Production,4,Farm,Agriculture,A,0,2,1,,,,,,,,,,,,,,,,,,1,
 Production,4,Mine,Bronze,A,0,2,,1,,,,,,,,,,,,,,,,,1,
+Urban,4,Lab,Philosophy,A,0,3,,,,,,1,,,,,,,,,,,,,1,
 Urban,4,Temple,Religion,A,0,3,,,1,,1,,,,,,,,,,,,,,1,
+Govt,4,Govt,Despotism,A,,,,,,,,,4,2,,,,,,,,,,,1,Building limit: 2

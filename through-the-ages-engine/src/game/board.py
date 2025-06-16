@@ -41,7 +41,7 @@ class GameBoard:
 
         # TECNOLOGÍAS INICIALES DISPONIBLES
         self.initial_technologies = [
-            "Agricultura", "Bronce", "Filosofía", "Religión",
+            "Agriculture", "Bronze", "Filosofía", "Religión",
             "Guerreros", "Despotismo"
         ]
 
@@ -117,10 +117,10 @@ class PlayerBoard:
             ],
             'available_workers': 1,        # Trabajadores disponibles
             'technology_workers': {        # Trabajadores asignados a tecnologías iniciales
-                'Agricultura': 2,          # 2 trabajadores en Agricultura nivel A
-                'Bronce': 2,              # 2 trabajadores en Bronce
-                'Filosofía': 1,           # 1 trabajador en Filosofía
-                'Religión': 0             # 0 trabajadores en Religión (aunque esté investigada)
+                'Agriculture': 2,          # 2 trabajadores en Agriculture nivel A
+                'Bronze': 2,              # 2 trabajadores en Bronze
+                'Philosophy': 1,           # 1 trabajador en Philosophy
+                'Religion': 0             # 0 trabajadores en Religion (aunque esté investigada)
             }
         }
 
@@ -159,71 +159,32 @@ class PlayerBoard:
         }
 
         # TECNOLOGÍAS Y CONSTRUCCIONES
-        # Create Card objects for initial technologies
-        from .cards import Card
+        # Load initial technologies from CSV
+        from .card_loader import load_initial_technologies, get_initial_government
 
-        inicial_agricultura = Card(
-            name='Agricultura',
-            category='Production',
-            age='A',
-            tech_cost=0,
-            build_cost=2,
-            production={'food': 1},
-            gain={},
-            card_text='Tecnología inicial de agricultura'
-        )
+        # Load initial technologies
+        initial_techs = load_initial_technologies()
 
-        inicial_bronce = Card(
-            name='Bronce',
-            category='Production',
-            age='A',
-            tech_cost=0,
-            build_cost=2,
-            production={'material': 1},
-            gain={},
-            card_text='Tecnología inicial de bronce'
-        )
+        # Separate technologies and government
+        initial_buildings = []
+        initial_government = None
 
-        inicial_filosofia = Card(
-            name='Filosofía',
-            category='Production',
-            age='A',
-            tech_cost=0,
-            build_cost=3,
-            production={'science': 1},
-            gain={},
-            card_text='Tecnología inicial de filosofía'
-        )
+        for card in initial_techs:
+            if hasattr(card, 'revolution_cost'):  # This is a government
+                initial_government = card
+            else:  # This is a building/technology
+                initial_buildings.append(card)
 
-        inicial_religion = Card(
-            name='Religión',
-            category='Production',
-            age='A',
-            tech_cost=0,
-            build_cost=3,
-            production={'culture': 1, 'happy': 1},
-            gain={},
-            card_text='Tecnología inicial de religión'
-        )
-
-        self.current_technologies = {
-            'Agricultura': {
-                'card_object': inicial_agricultura,
-                'production': {'food': 1}
-            },
-            'Bronce': {
-                'card_object': inicial_bronce,
-                'production': {'material': 1}
-            },
-            'Filosofía': {
-                'card_object': inicial_filosofia,
-                'production': {'science': 1}
-            },
-            'Religión': {
-                'card_object': inicial_religion,
-                'production': {'culture': 1, 'happy': 1}
+        # Store the initial technologies properly
+        self.current_technologies = {}
+        for card in initial_buildings:
+            self.current_technologies[card.name] = {
+                'card_object': card,
+                'production': getattr(card, 'production', {})
             }
-        }
+
+        # Set active government
+        self.active_government = initial_government
 
         # CONFIGURACIÓN POBLACIÓN
         # Costes incrementales para aumentar población (por jugador individual)
@@ -234,9 +195,7 @@ class PlayerBoard:
         self.turn_improvements = {
             'technologies_researched': [],      # Tecnologías investigadas este turno
             'cards_in_hand': 0,                # Cartas en mano
-            'civil_actions_base': 4,           # Acciones civiles base por turno
             'civil_actions_bonus': 0,          # Bonificación a acciones civiles
-            'military_actions_base': 2,        # Acciones militares base por turno
             'military_actions_bonus': 0        # Bonificación a acciones militares
         }
 
@@ -669,13 +628,11 @@ class PlayerBoard:
 
     def get_total_civil_actions(self) -> int:
         """Obtiene el total de acciones civiles disponibles por turno"""
-        return (self.turn_improvements['civil_actions_base'] +
-                self.turn_improvements['civil_actions_bonus'])
+        return self.get_civil_actions_per_turn()
 
     def get_total_military_actions(self) -> int:
         """Obtiene el total de acciones militares disponibles por turno"""
-        return (self.turn_improvements['military_actions_base'] +
-                self.turn_improvements['military_actions_bonus'])
+        return self.get_military_actions_per_turn()
 
     def get_civil_actions_available(self) -> int:
         """Obtiene acciones civiles restantes en el turno actual"""
@@ -701,6 +658,50 @@ class PlayerBoard:
     def add_military_action_bonus(self, bonus: int):
         """Añade bonificación a acciones militares"""
         self.turn_improvements['military_actions_bonus'] += bonus
+
+    def get_civil_actions_per_turn(self) -> int:
+        """Get total civil actions per turn based on active government and bonuses
+
+        Returns:
+            int: Total civil actions available per turn
+        """
+        base_actions = 0
+        if self.active_government and hasattr(self.active_government, 'civil_actions'):
+            base_actions = self.active_government.civil_actions
+
+        bonus_actions = self.turn_improvements.get('civil_actions_bonus', 0)
+        return base_actions + bonus_actions
+
+    def get_military_actions_per_turn(self) -> int:
+        """Get total military actions per turn based on active government and bonuses
+
+        Returns:
+            int: Total military actions available per turn
+        """
+        base_actions = 0
+        if self.active_government and hasattr(self.active_government, 'military_actions'):
+            base_actions = self.active_government.military_actions
+
+        bonus_actions = self.turn_improvements.get('military_actions_bonus', 0)
+        return base_actions + bonus_actions
+
+    def get_building_limit(self) -> int:
+        """Get building limit based on active government
+
+        Returns:
+            int: Maximum number of buildings that can be built
+        """
+        if self.active_government and hasattr(self.active_government, 'building_limit'):
+            return self.active_government.building_limit
+        return 2  # Default for Despotism
+
+    def set_government(self, government_card):
+        """Set a new active government
+
+        Args:
+            government_card: Government card object
+        """
+        self.active_government = government_card
 
     def get_available_civil_actions(self, player_id: int) -> List[Dict[str, Any]]:
         """Obtiene acciones civiles disponibles para un jugador específico

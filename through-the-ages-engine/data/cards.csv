@@ -7,7 +7,6 @@ Production,2,Mine,Coal,II,7,8,,3,,,,,,,,,,,,,,,,,1,
 Production,2,Mine,Oil,III,9,11,,5,,,,,,,,,,,,,,,,,1,
 Urban,2,Temple,Theology,I,2,5,,,1,,2,,,,,,,,,,,,,,1,
 Urban,2,Temple,Organized Religion,II,4,7,,,1,,3,,,,,,,,,,,,,,1,
-Urban,4,Lab,Philosophy,A,0,3,,,,,,1,,,,,,,,,,,,,1,
 Urban,3,Lab,Alchemy,I,4,6,,,,,,2,,,,,,,,,,,,,1,
 Urban,2,Lab,Scientific Method,II,6,8,,,,,,3,,,,,,,,,,,,,1,
 Urban,2,Lab,Computers,III,8,10,,,,,,5,,,,,,,,,,,,,1,
@@ -45,7 +44,6 @@ Wonder,1,Wonder,First Space Flight,III,,3 4 9,,,,,,,,,,,,,,,,,,,1,Immediately sc
 Wonder,1,Wonder,Fast Food Chains,III,,4 4 4 4,,,,,,,,,,,,,,,,,,,1,"Immediately score 1 culture every military/urban worker, 2 culture every farmer/miner"
 Leader,1,Leader,Julius Caesar,A,,,,,,1,,,,1,,,,,,,,,,,1,
 Leader,1,Leader,Hammurabi,A,,,,,,,,,1,-1,,,,,,,,,,,1,
-Govt,4,Govt,Despotism,A,,,,,,,,,4,2,,,,,,,,,,,1,Building limit: 2
 Govt,2,Govt,Monarchy,I,3 (9),,,,,,,,5,3,,,,,,,,,,,1,Building limit: 3
 Govt,1,Govt,Theocracy,I,2 (7),,,,1,,2,,4,3,,,,,,,,,,,1,Building limit: 3
 Govt,2,Govt,Constitutional Monarchy,II,5 (12),,,,,,,,6,4,,,,,,,,,,,1,Building limit: 3

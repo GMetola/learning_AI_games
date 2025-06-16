@@ -59,9 +59,9 @@ class TestGameActions(unittest.TestCase):
         pop_action = ActionFactory.create_increase_population_action(1)
         self.assertEqual(pop_action.action_type, 'aumentar_población')
         self.assertEqual(pop_action.cost['civil_actions'], 1)        # Test assign worker action
-        worker_action = ActionFactory.create_assign_worker_action(1, 'Agricultura')
+        worker_action = ActionFactory.create_assign_worker_action(1, 'Agriculture')
         self.assertEqual(worker_action.action_type, 'asignar_trabajador')
-        self.assertEqual(worker_action.parameters['tech_name'], 'Agricultura')
+        self.assertEqual(worker_action.parameters['tech_name'], 'Agriculture')
         self.assertEqual(worker_action.cost['civil_actions'], 1)
 
         # Test end turn action
@@ -119,8 +119,8 @@ class TestGameActions(unittest.TestCase):
         self.assertGreater(initial_workers, 0, "Player should have available workers")
 
         # Give player enough materials for worker assignment
-        player_board.resources['material'] = 5  # Enough for any technology        # Create and validate worker assignment action (use Religión which has 0 workers)
-        action = ActionFactory.create_assign_worker_action(1, 'Religión')
+        player_board.resources['material'] = 5  # Enough for any technology        # Create and validate worker assignment action (use Religion which has 0 workers)
+        action = ActionFactory.create_assign_worker_action(1, 'Religion')
         is_valid, error = self.validator.validate_action(1, action)
         self.assertTrue(is_valid, f"Worker assignment should be valid: {error}")
 
@@ -138,7 +138,7 @@ class TestGameActions(unittest.TestCase):
         self.assertTrue(result['success'], f"Execution should succeed: {result}")        # Test validation failure when insufficient materials
         player_board.yellow_reserves['available_workers'] = 2  # Give more workers
         player_board.resources['material'] = 0  # Remove materials
-        action2 = ActionFactory.create_assign_worker_action(1, 'Bronce')
+        action2 = ActionFactory.create_assign_worker_action(1, 'Bronze')
         is_valid2, error2 = self.validator.validate_action(1, action2)
         self.assertFalse(is_valid2, "Worker assignment should be invalid with insufficient materials")
         self.assertIn("Materiales insuficientes", error2, "Error should mention insufficient materials")
@@ -204,13 +204,11 @@ class TestGameActions(unittest.TestCase):
         # Give player enough resources for actions
         player_board = self.player1.board
         player_board.resources['food'] = 10
-        player_board.resources['material'] = 5
-
-        # Create different types of actions
+        player_board.resources['material'] = 5        # Create different types of actions
         actions = [
             ActionFactory.create_take_card_action(1, 0),
             ActionFactory.create_increase_population_action(1),
-            ActionFactory.create_assign_worker_action(1, 'Agricultura'),
+            ActionFactory.create_assign_worker_action(1, 'Agriculture'),
             ActionFactory.create_end_turn_action(1)
         ]
 
@@ -222,12 +220,11 @@ class TestGameActions(unittest.TestCase):
         self.assertEqual(total_cost['civil_actions'], 3)  # take card + increase pop + assign worker
         self.assertEqual(total_cost['military_actions'], 0)
 
-        # Test action sequence validation
-        # Create a sequence with mixed players - should be invalid
+        # Test action sequence validation        # Create a sequence with mixed players - should be invalid
         mixed_actions = [
             ActionFactory.create_take_card_action(1, 0),      # Player 1
             ActionFactory.create_increase_population_action(2),  # Player 2 - wrong turn!
-            ActionFactory.create_assign_worker_action(1, 'Agricultura'),  # Player 1
+            ActionFactory.create_assign_worker_action(1, 'Agriculture'),  # Player 1
         ]
         is_valid, error = ActionUtils.validate_action_sequence(mixed_actions, self.game_state)
         # Should be invalid because player 2 tries to act on player 1's turn
@@ -235,7 +232,7 @@ class TestGameActions(unittest.TestCase):
         valid_actions = [
             ActionFactory.create_take_card_action(1, 0),
             ActionFactory.create_increase_population_action(1),
-            ActionFactory.create_assign_worker_action(1, 'Agricultura'),
+            ActionFactory.create_assign_worker_action(1, 'Agriculture'),
             ActionFactory.create_end_turn_action(1)
         ]
         is_valid, error = ActionUtils.validate_action_sequence(valid_actions, self.game_state)
@@ -247,11 +244,9 @@ class TestGameActions(unittest.TestCase):
         """Test executing multiple actions in sequence"""
         player_board = self.player1.board
         player_board.resources['food'] = 10
-        player_board.resources['material'] = 5  # Give enough materials for worker assignment
-
-        # Create sequence of actions - use Religión instead of Agricultura to avoid max workers issue
+        player_board.resources['material'] = 5  # Give enough materials for worker assignment        # Create sequence of actions - use Religion instead of Agriculture to avoid max workers issue
         actions = [
-            ActionFactory.create_assign_worker_action(1, 'Religión'),
+            ActionFactory.create_assign_worker_action(1, 'Religion'),
             ActionFactory.create_increase_population_action(1),
             ActionFactory.create_end_turn_action(1)
         ]

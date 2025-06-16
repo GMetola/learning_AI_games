@@ -4,8 +4,8 @@
     "visible_civil_cards": 13,
     "peaceful_version": true,
     "initial_technologies": [
-      "Agricultura",
-      "Bronce",
+      "Agriculture",
+      "Bronze",
       "Filosofía",
       "Religión",
       "Guerreros",
@@ -53,8 +53,8 @@
     "urban_building_limit": 2
   },
   "initial_production": {
-    "Agricultura": {"food": 1},
-    "Bronce": {"resource": 1},
+    "Agriculture": {"food": 1},
+    "Bronze": {"resource": 1},
     "Filosofía": {"science": 1},
     "Religión": {"culture": 1, "happiness": 1}
   },

@@ -92,12 +92,12 @@ def test_worker_assignment():
     player = game.players[0]
     board = player.board    # Assign worker to Agriculture (already has 2, so will become 3)
     initial_available = board.yellow_reserves['available_workers']
-    initial_agricultura = board.yellow_reserves['technology_workers']['Agricultura']
-    success = board.assign_worker_to_building('Agricultura')
+    initial_agriculture = board.yellow_reserves['technology_workers']['Agriculture']
+    success = board.assign_worker_to_building('Agriculture')
 
     assert success, "Worker assignment should succeed"
     assert board.yellow_reserves['available_workers'] == initial_available - 1
-    assert board.yellow_reserves['technology_workers']['Agricultura'] == initial_agricultura + 1
+    assert board.yellow_reserves['technology_workers']['Agriculture'] == initial_agriculture + 1
 
     print("✓ Worker successfully assigned to Agriculture")
 

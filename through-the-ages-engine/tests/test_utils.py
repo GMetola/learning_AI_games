@@ -52,7 +52,7 @@ def setup_production_test_state(player_board):
     """
     # CONFIGURACIÓN ESTADO PRODUCCIÓN
     # Asigna trabajadores a todas las tecnologías iniciales
-    initial_technologies = ['Agricultura', 'Bronce', 'Filosofía', 'Religión']
+    initial_technologies = ['Agriculture', 'Bronze', 'Filosofía', 'Religión']
 
     print("🔧 TEST UTILITY: Configurando estado para pruebas de producción...")
 

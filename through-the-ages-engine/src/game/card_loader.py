@@ -4,7 +4,7 @@ Card loader utility to read cards from CSV and create card objects.
 
 import csv
 import os
-from typing import List, Dict
+from typing import List, Dict, Optional
 from .card_classes import Card, create_card_from_csv_row
 
 class CardLoader:
@@ -59,6 +59,43 @@ class CardLoader:
             return []
 
         self._cards_cache = cards
+        return cards
+
+    def load_initial_technologies(self) -> List[Card]:
+        """Load initial Age A technologies from initial_technologies.csv
+
+        Returns:
+            List[Card]: Initial technology cards that players start with
+        """
+        # Path to initial technologies CSV
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        initial_csv_path = os.path.join(project_root, 'data', 'initial_technologies.csv')
+
+        cards = []
+
+        try:
+            with open(initial_csv_path, 'r', encoding='utf-8') as file:
+                reader = csv.DictReader(file)
+
+                for row in reader:
+                    # Skip rows that are not included in v0.1
+                    if row.get('Included v0.1') != '1':
+                        continue
+
+                    try:
+                        card = create_card_from_csv_row(row)
+                        cards.append(card)
+                    except Exception as e:
+                        print(f"Error creating initial card from row {row.get('Card Name', 'Unknown')}: {e}")
+                        continue
+
+        except FileNotFoundError:
+            print(f"Initial technologies CSV file not found at: {initial_csv_path}")
+            return []
+        except Exception as e:
+            print(f"Error reading initial technologies CSV: {e}")
+            return []
+
         return cards
 
     def get_cards_by_category(self, category: str) -> List[Card]:
@@ -142,6 +179,18 @@ class CardLoader:
         """
         return self.get_cards_by_category('Urban')
 
+    def get_initial_government(self) -> Optional[Card]:
+        """Get the initial government (Despotism)
+
+        Returns:
+            Card: Despotism government card or None
+        """
+        initial_cards = self.load_initial_technologies()
+        for card in initial_cards:
+            if hasattr(card, 'civil_actions') and card.name == 'Despotism':
+                return card
+        return None
+
     def print_card_summary(self):
         """Print a summary of all loaded cards"""
         cards = self.load_all_cards()
@@ -197,3 +246,19 @@ def get_card_by_name(name: str) -> Card:
         Card: Card object or None
     """
     return get_card_loader().get_card_by_name(name)
+
+def load_initial_technologies() -> List[Card]:
+    """Convenience function to load initial technologies
+
+    Returns:
+        List[Card]: Initial technology cards
+    """
+    return get_card_loader().load_initial_technologies()
+
+def get_initial_government() -> Card:
+    """Convenience function to get initial government
+
+    Returns:
+        Card: Despotism government card
+    """
+    return get_card_loader().get_initial_government()
