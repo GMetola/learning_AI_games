@@ -284,20 +284,26 @@ class ActionExecutor:
             player_board.used_military_actions = current_used + military_cost
 
         # EJECUCIÓN POR TIPO
+        result = None
         if action.action_type == 'tomar_carta':
-            return self._execute_take_card(action)
+            result = self._execute_take_card(action)
         elif action.action_type == 'aumentar_población':
-            return self._execute_increase_population(action)
+            result = self._execute_increase_population(action)
         elif action.action_type == 'asignar_trabajador':
-            return self._execute_assign_worker(action)
+            result = self._execute_assign_worker(action)
         elif action.action_type == 'construir_edificio':
-            return self._execute_build_building(action)
+            result = self._execute_build_building(action)
         elif action.action_type == 'research_technology':
-            return self._execute_research_technology(action)
+            result = self._execute_research_technology(action)
         elif action.action_type == 'terminar_turno':
-            return self._execute_end_turn(action)
+            result = self._execute_end_turn(action)
         else:
-            return {'success': False, 'error': f'Tipo de acción no implementado: {action.action_type}'}
+            result = {'success': False, 'error': f'Tipo de acción no implementado: {action.action_type}'}
+
+        # Log detailed player state after action
+        self._log_player_state_debug(action.player_id, action.action_type, result.get('success', False))
+
+        return result
 
     def _execute_take_card(self, action: GameAction) -> Dict[str, Any]:
         """Ejecuta tomar carta civil"""
@@ -487,6 +493,68 @@ class ActionExecutor:
                 break
 
         return results
+
+    def _log_player_state_debug(self, player_id: int, action_type: str, success: bool):
+        """Log detailed player state for debugging after an action
+
+        Args:
+            player_id (int): ID of the player
+            action_type (str): Type of action that was executed
+            success (bool): Whether the action was successful
+        """
+        try:
+            player = self.game_state.players[player_id - 1]
+            player_board = player.board
+
+            # Get current resources
+            resources = player_board.resources.copy()
+
+            # Calculate current production
+            production = {'food': 0, 'material': 0, 'science': 0, 'culture': 0, 'happy': 0, 'strength': 0}
+
+            # Production from buildings with workers
+            for tech_name, workers in player_board.yellow_reserves['technology_workers'].items():
+                building = player_board.get_building_by_name(tech_name)
+                if building and hasattr(building, 'production') and workers > 0:
+                    for resource, amount_per_worker in building.production.items():
+                        production[resource] += workers * amount_per_worker
+
+            # Cards in hand
+            hand_count = len(player_board.hand_cards)
+            hand_names = [card.name for card in player_board.hand_cards]
+
+            # Technologies developed (buildings)
+            buildings_info = []
+            for building in player_board.get_all_buildings():
+                workers = player_board.yellow_reserves['technology_workers'].get(building.name, 0)
+                buildings_info.append(f"{building.name}({workers}w)")
+
+            # Wonders
+            wonders_info = []
+            for wonder in player_board.wonders:
+                step_info = wonder.get_step_info()
+                wonders_info.append(f"{wonder.name}({step_info['current_step']}/{step_info['num_steps']})")
+
+            # Actions available
+            civil_available = player_board.get_civil_actions_available()
+            military_available = player_board.get_military_actions_available()
+
+            # Format debug log
+            debug_msg = f"""
+========== PLAYER {player_id} STATE AFTER {action_type.upper()} ({'SUCCESS' if success else 'FAILED'}) ==========
+RESOURCES: Food={resources['food']}, Materials={resources['material']}, Science={resources['science']}, Culture={resources['culture']}, Happy={resources['happy']}, Strength={resources['strength']}
+PRODUCTION: Food={production['food']}, Materials={production['material']}, Science={production['science']}, Culture={production['culture']}, Happy={production['happy']}, Strength={production['strength']}
+HAND CARDS: {hand_count} cards {hand_names if hand_names else []}
+BUILDINGS: {', '.join(buildings_info) if buildings_info else 'None'}
+WONDERS: {', '.join(wonders_info) if wonders_info else 'None'}
+GOVERNMENT: {player_board.government.name} (Civil:{civil_available}, Military:{military_available})
+WORKERS: Available={player_board.yellow_reserves['available_workers']}
+====================================================================================================="""
+
+            logging.info(debug_msg)
+
+        except Exception as e:
+            logging.warning(f"Failed to log player state debug: {e}")
 
 # Factory para crear acciones comunes
 class ActionFactory:
