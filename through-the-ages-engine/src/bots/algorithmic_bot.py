@@ -58,7 +58,7 @@ class AlgorithmicBot(BaseBot):
             Dict: Acción seleccionada en formato dict
         """
         # Import here to avoid circular imports
-        from game.actions import GameAction
+        from ..game.actions import GameAction
 
         if not available_actions:
             logging.warning(f"Bot {self.name}: Sin acciones disponibles")

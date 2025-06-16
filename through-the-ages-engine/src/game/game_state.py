@@ -7,6 +7,7 @@ class GameState:
         # Inicializa el estado del juego
         self.players = []
         self.current_turn = 0
+        self.turn_number = 1
         self.game_over = False
         self.board = None  # Se inicializará con el número de jugadores
 
@@ -51,7 +52,7 @@ class GameState:
     def _setup_initial_cards(self):
         """Configura cartas iniciales en el tablero"""
         try:
-            from game.cards import CardLoader
+            from .cards import CardLoader
             loader = CardLoader()
             cards = loader.load_cards_from_csv()
 

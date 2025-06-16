@@ -29,11 +29,16 @@ class TestGameActions(unittest.TestCase):
 
         # Initialize action validator and executor
         self.validator = ActionValidator(self.game_state)
-        self.executor = ActionExecutor(self.game_state)
-
-        # Get first player for testing
+        self.executor = ActionExecutor(self.game_state)        # Get first player for testing
         self.player1 = self.game_state.players[0]
         self.player2 = self.game_state.players[1]
+
+        # Initialize some mock cards for testing
+        self.game_state.board.visible_civil_cards = [
+            {"name": "Mock Card 1", "type": "building"},
+            {"name": "Mock Card 2", "type": "technology"},
+            {"name": "Mock Card 3", "type": "wonder"}
+        ]
 
     def test_action_factory_creation(self):
         """Test ActionFactory creates actions correctly"""
@@ -190,12 +195,12 @@ class TestGameActions(unittest.TestCase):
         # Test filtering by type
         pop_actions = ActionUtils.filter_actions_by_type(actions, 'aumentar_población')
         self.assertEqual(len(pop_actions), 1)
-        self.assertEqual(pop_actions[0].action_type, 'aumentar_población')
-
-        # Test cost calculation
+        self.assertEqual(pop_actions[0].action_type, 'aumentar_población')        # Test cost calculation
         total_cost = ActionUtils.calculate_total_cost(actions)
         self.assertEqual(total_cost['civil_actions'], 2)  # take card + increase pop
-        self.assertEqual(total_cost['military_actions'], 0)        # Test action sequence validation
+        self.assertEqual(total_cost['military_actions'], 0)
+
+        # Test action sequence validation
         # Create a sequence with mixed players - should be invalid
         mixed_actions = [
             ActionFactory.create_take_card_action(1, 0),      # Player 1
@@ -214,7 +219,9 @@ class TestGameActions(unittest.TestCase):
             ActionFactory.create_end_turn_action(1)
         ]
         is_valid, error = ActionUtils.validate_action_sequence(valid_actions, self.game_state)
-        self.assertTrue(is_valid)
+        if not is_valid:
+            print(f"Validation failed: {error}")
+        self.assertTrue(is_valid, f"Expected valid sequence but got error: {error}")
 
     def test_execute_multiple_actions(self):
         """Test executing multiple actions in sequence"""

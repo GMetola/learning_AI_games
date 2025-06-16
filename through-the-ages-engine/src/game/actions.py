@@ -40,7 +40,8 @@ class ActionValidator:
         player_board = player.board
 
         # VALIDACIÓN GENERAL: Turno del jugador
-        if self.game_state.get_current_player() != player.name:
+        current_player_index = self.game_state.current_turn
+        if player_id - 1 != current_player_index:
             return False, "No es el turno de este jugador"
 
         # VALIDACIÓN ACCIONES CIVILES Y MILITARES
