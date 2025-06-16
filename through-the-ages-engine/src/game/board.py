@@ -91,7 +91,24 @@ class GameBoard:
 
 
 class PlayerBoard:
-    """Tablero individual de cada jugador con reservas propias"""
+    """Player's individual board with card collections and resource management
+
+    The PlayerBoard now contains organized card collections as specified:
+
+    Unique Attributes (single card instances):
+    - leader: Leader card (None by default)
+    - government: Government card (Despotism by default)
+
+    Multiple Attributes (lists of card instances):
+    - wonders: List of Wonder cards
+    - monuments: List of Monument cards (not in v0.1)
+    - hand_cards: List of cards in player's hand
+    - production_buildings: List of ProductionBuilding cards
+    - urban_buildings: List of UrbanBuilding cards
+
+    The board automatically loads initial Age A technologies from initial_technologies.csv
+    and provides government-based action limits and building restrictions.
+    """
 
     def __init__(self, player_id: int):
         """Inicializa tablero individual del jugador
@@ -158,7 +175,7 @@ class PlayerBoard:
             'science': 0       # Puntos de ciencia acumulados
         }
 
-        # TECNOLOGÍAS Y CONSTRUCCIONES
+        # PLAYER CARD COLLECTIONS
         # Load initial technologies from CSV
         from .card_loader import load_initial_technologies, get_initial_government
 
@@ -175,7 +192,25 @@ class PlayerBoard:
             else:  # This is a building/technology
                 initial_buildings.append(card)
 
-        # Store the initial technologies properly
+        # Unique attributes (single card instances)
+        self.leader = None  # Leader card (None by default)
+        self.government = initial_government  # Government card (Despotism by default)
+
+        # Multiple attributes (lists of card instances)
+        self.wonders = []  # List of Wonder cards
+        self.monuments = []  # List of Monument cards (not in v0.1)
+        self.hand_cards = []  # List of cards in hand
+        self.production_buildings = []  # List of ProductionBuilding cards
+        self.urban_buildings = []  # List of UrbanBuilding cards
+
+        # Initialize with starting buildings from CSV
+        for card in initial_buildings:
+            if card.__class__.__name__ == 'ProductionBuilding':
+                self.production_buildings.append(card)
+            elif card.__class__.__name__ == 'UrbanBuilding':
+                self.urban_buildings.append(card)
+
+        # Legacy technology tracking (for compatibility with existing code)
         self.current_technologies = {}
         for card in initial_buildings:
             self.current_technologies[card.name] = {
@@ -183,8 +218,8 @@ class PlayerBoard:
                 'production': getattr(card, 'production', {})
             }
 
-        # Set active government
-        self.active_government = initial_government
+        # Set active government (alias for backward compatibility)
+        self.active_government = self.government
 
         # CONFIGURACIÓN POBLACIÓN
         # Costes incrementales para aumentar población (por jugador individual)
@@ -702,6 +737,113 @@ class PlayerBoard:
             government_card: Government card object
         """
         self.active_government = government_card
+
+    def add_card_to_hand(self, card):
+        """Add a card to the player's hand
+
+        Args:
+            card: Card object to add to hand
+        """
+        self.hand_cards.append(card)
+
+    def remove_card_from_hand(self, card):
+        """Remove a card from the player's hand
+
+        Args:
+            card: Card object to remove from hand
+
+        Returns:
+            bool: True if card was removed, False if not found
+        """
+        if card in self.hand_cards:
+            self.hand_cards.remove(card)
+            return True
+        return False
+
+    def add_production_building(self, card):
+        """Add a production building to the player's board
+
+        Args:
+            card: ProductionBuilding card object
+        """
+        self.production_buildings.append(card)
+        # Also add to legacy tracking for compatibility
+        self.current_technologies[card.name] = {
+            'card_object': card,
+            'production': getattr(card, 'production', {})
+        }
+
+    def add_urban_building(self, card):
+        """Add an urban building to the player's board
+
+        Args:
+            card: UrbanBuilding card object
+        """
+        self.urban_buildings.append(card)
+        # Also add to legacy tracking for compatibility
+        self.current_technologies[card.name] = {
+            'card_object': card,
+            'production': getattr(card, 'production', {})
+        }
+
+    def add_wonder(self, card):
+        """Add a wonder to the player's board
+
+        Args:
+            card: Wonder card object
+        """
+        self.wonders.append(card)
+
+    def set_leader(self, card):
+        """Set the player's leader
+
+        Args:
+            card: Leader card object
+        """
+        self.leader = card
+
+    def set_government(self, card):
+        """Set the player's government
+
+        Args:
+            card: Government card object
+        """
+        self.government = card
+        self.active_government = card  # Update alias
+
+    def get_all_buildings(self):
+        """Get all buildings (production + urban) owned by the player
+
+        Returns:
+            List: All building cards
+        """
+        return self.production_buildings + self.urban_buildings
+
+    def get_building_by_name(self, name: str):
+        """Get a building by name
+
+        Args:
+            name (str): Name of the building
+
+        Returns:
+            Card object or None if not found
+        """
+        all_buildings = self.get_all_buildings()
+        for building in all_buildings:
+            if building.name == name:
+                return building
+        return None
+
+    def has_technology(self, tech_name: str) -> bool:
+        """Check if player has a specific technology
+
+        Args:
+            tech_name (str): Name of the technology
+
+        Returns:
+            bool: True if player has the technology
+        """
+        return self.get_building_by_name(tech_name) is not None
 
     def get_available_civil_actions(self, player_id: int) -> List[Dict[str, Any]]:
         """Obtiene acciones civiles disponibles para un jugador específico

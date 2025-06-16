@@ -116,7 +116,7 @@ class CardLoader:
             'Military': 'MilitaryTechnology',
             'Wonder': 'Wonder',
             'Govt': 'Government',
-            'Special': 'Special',
+            'Monument': 'Monument',
             'Action': 'ActionCard',
             'Leader': 'Leader'
         }

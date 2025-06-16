@@ -50,7 +50,7 @@ class Technology(CivilCard):
     def __init__(self, name: str, age: str, tech_cost: int = 0, card_text: str = ""):
         super().__init__(name, age, tech_cost, card_text)
 
-class WorkBuilding(Technology):
+class Building(Technology):
     """Base class for buildings that can have workers"""
 
     def __init__(self, name: str, age: str, tech_cost: int = 0, build_cost: int = 0,
@@ -109,7 +109,7 @@ class WorkBuilding(Technology):
         """Get the number of workers assigned to this building"""
         return len(self.workers)
 
-class ProductionBuilding(WorkBuilding):
+class ProductionBuilding(Building):
     """Production buildings (farms, mines, labs) that can store blue tokens"""
 
     def __init__(self, name: str, building_type: str, age: str, tech_cost: int = 0,
@@ -180,7 +180,7 @@ class ProductionBuilding(WorkBuilding):
 
         return total
 
-class UrbanBuilding(WorkBuilding):
+class UrbanBuilding(Building):
     """Urban buildings (temples, arenas, libraries, theaters)"""
 
     def __init__(self, name: str, building_type: str, age: str, tech_cost: int = 0,
@@ -329,8 +329,8 @@ class Government(Technology):
             'building_limit': self.building_limit
         }
 
-class Special(Technology):
-    """Special technology cards"""
+class Monument(Technology):
+    """Monument technology cards"""
 
     def __init__(self, name: str, special_type: str, age: str, tech_cost: int = 0,
                  effects: Dict[str, Any] = None, card_text: str = ""):
@@ -339,12 +339,20 @@ class Special(Technology):
         self.effects = effects or {}
 
 class ActionCard(CivilCard):
-    """Action cards that provide immediate effects"""
+    """Action cards that provide immediate effects with complex cost notations"""
 
-    def __init__(self, name: str, age: str, effects: Dict[str, Any] = None,
-                 card_text: str = ""):
+    def __init__(self, name: str, age: str, cost_notation: str = "",
+                 effects: Dict[str, Any] = None, card_text: str = ""):
         super().__init__(name, age, 0, card_text)  # Action cards don't have tech cost
+        self.cost_notation = cost_notation  # Raw cost string like "2 W", "P 1", etc.
+        self.parsed_cost = parse_action_cost(cost_notation)
         self.effects = effects or {}
+
+    def get_cost_description(self) -> str:
+        """Get human-readable cost description"""
+        if not self.parsed_cost:
+            return "No cost"
+        return self.parsed_cost.get('description', self.cost_notation)
 
 class Leader(CivilCard):
     """Leader cards"""
@@ -355,6 +363,131 @@ class Leader(CivilCard):
         self.effects = effects or {}
 
 # Factory functions to create cards from CSV data
+
+def safe_parse_int(value: str) -> int:
+    """Safely parse string to integer, handling special notations
+
+    Args:
+        value (str): String value to parse
+
+    Returns:
+        int: Parsed integer or 0 if cannot parse
+    """
+    if not value or value.strip() == "":
+        return 0
+
+    value = value.strip()
+
+    # Handle quotes (remove them first)
+    if '"' in value:
+        value = value.replace('"', '')
+
+    # Handle special notations
+    if value == "?" or "?" in value:
+        return 0  # Unknown values default to 0
+
+    # Handle single letters or complex notations
+    if any(char in value for char in ['W', 'P', 'U', 'M', 'T']) and len(value) <= 3:
+        return 0  # Complex action card costs default to 0
+
+    # Try to parse as integer
+    try:
+        return int(value)
+    except ValueError:
+        # Extract first number if present
+        import re
+        numbers = re.findall(r'\d+', value)
+        if numbers:
+            return int(numbers[0])
+        return 0
+
+def safe_parse_value(value: str) -> int:
+    """Safely parse a value that might contain special notations
+
+    Args:
+        value (str): Value to parse
+
+    Returns:
+        int: Parsed integer or 0 for special notations
+    """
+    if not value or value.strip() == '':
+        return 0
+
+    value = value.strip()
+
+    # Handle special cases that should return 0 for now
+    # These are complex action card costs that need special handling
+    if value == '?' or 'W' in value or 'P' in value or 'U' in value or 'M' in value or 'T' in value:
+        return 0
+
+    # Remove quotes if present
+    if '"' in value:
+        value = value.replace('"', '')
+
+    # Try to parse as integer
+    try:
+        return int(value)
+    except ValueError:
+        # Extract first number if present
+        import re
+        numbers = re.findall(r'\d+', value)
+        if numbers:
+            return int(numbers[0])
+        return 0
+
+def parse_action_cost(cost_str: str) -> Dict[str, Any]:
+    """Parse action card cost notation
+
+    Action card costs follow this logic:
+    - Divide by spaces
+    - If first character is number: reduces material cost
+    - If first character is letter: gives materials back after construction
+    - Letters: W=wonder, U=urban, M=military, P=production, PU=both prod/urban, T=technology(science)
+    - ? = multiplier based on number of players (check card description)
+
+    Args:
+        cost_str (str): Cost string like "2 W", "P 1", "?", etc.
+
+    Returns:
+        Dict[str, Any]: Parsed cost information
+    """
+    if not cost_str or cost_str.strip() == '':
+        return {}
+
+    cost_str = cost_str.strip()
+
+    # Handle multiplier
+    if cost_str == '?':
+        return {'type': 'multiplier', 'description': 'Based on number of players'}
+
+    # Split by spaces
+    parts = cost_str.split()
+    if len(parts) != 2:
+        return {'raw': cost_str}  # Complex format, store as raw
+
+    first_part, second_part = parts
+
+    # Determine if first character is number or letter
+    if first_part[0].isdigit():
+        # Number first: reduces cost
+        amount = int(first_part)
+        target = second_part.upper()
+        return {
+            'type': 'cost_reduction',
+            'amount': amount,
+            'target': target,
+            'description': f'Reduces {target} cost by {amount}'
+        }
+    else:
+        # Letter first: gives materials back
+        target = first_part.upper()
+        amount = int(second_part)
+        return {
+            'type': 'material_return',
+            'target': target,
+            'amount': amount,
+            'description': f'Returns {amount} materials after {target} construction'
+        }
 
 def create_card_from_csv_row(row: Dict[str, str]) -> Card:
     """Create appropriate card object from CSV row data
@@ -383,25 +516,23 @@ def create_card_from_csv_row(row: Dict[str, str]) -> Card:
     build_cost = 0
     build_cost_str = row['Build cost']
     if category != 'Wonder':
-        build_cost = int(build_cost_str) if build_cost_str and build_cost_str != '' else 0
-
-    # Parse production values
+        build_cost = int(build_cost_str) if build_cost_str and build_cost_str != '' else 0    # Parse production values safely
     production = {}
-    if row['Production Food']: production['food'] = int(row['Production Food'])
-    if row['Production Material']: production['material'] = int(row['Production Material'])
-    if row['Production Culture']: production['culture'] = int(row['Production Culture'])
-    if row['Production Strength']: production['strength'] = int(row['Production Strength'])
-    if row['Production Happy']: production['happy'] = int(row['Production Happy'])
-    if row['Production Science']: production['science'] = int(row['Production Science'])
+    if row['Production Food']: production['food'] = safe_parse_int(row['Production Food'])
+    if row['Production Material']: production['material'] = safe_parse_int(row['Production Material'])
+    if row['Production Culture']: production['culture'] = safe_parse_int(row['Production Culture'])
+    if row['Production Strength']: production['strength'] = safe_parse_int(row['Production Strength'])
+    if row['Production Happy']: production['happy'] = safe_parse_int(row['Production Happy'])
+    if row['Production Science']: production['science'] = safe_parse_int(row['Production Science'])
 
-    # Parse gain values
+    # Parse gain values safely
     gain = {}
-    if row['Gain Food']: gain['food'] = int(row['Gain Food'])
-    if row['Gain Material']: gain['material'] = int(row['Gain Material'])
-    if row['Gain Culture']: gain['culture'] = int(row['Gain Culture'])
-    if row['Gain Strength']: gain['strength'] = int(row['Gain Strength'])
-    if row['Gain Happy']: gain['happy'] = int(row['Gain Happy'])
-    if row['Gain Science']: gain['science'] = int(row['Gain Science'])
+    if row['Gain Food']: gain['food'] = safe_parse_int(row['Gain Food'])
+    if row['Gain Material']: gain['material'] = safe_parse_int(row['Gain Material'])
+    if row['Gain Culture']: gain['culture'] = safe_parse_int(row['Gain Culture'])
+    if row['Gain Strength']: gain['strength'] = safe_parse_int(row['Gain Strength'])
+    if row['Gain Happy']: gain['happy'] = safe_parse_int(row['Gain Happy'])
+    if row['Gain Science']: gain['science'] = safe_parse_int(row['Gain Science'])
 
     # Create appropriate card type
     if category == 'Production':
@@ -468,8 +599,8 @@ def create_card_from_csv_row(row: Dict[str, str]) -> Card:
             gain=gain,
             card_text=card_text
         )
-    elif category == 'Special':
-        return Special(
+    elif category == 'Monument':
+        return Monument(
             name=name,
             special_type=card_type,
             age=age,
@@ -477,9 +608,18 @@ def create_card_from_csv_row(row: Dict[str, str]) -> Card:
             card_text=card_text
         )
     elif category == 'Action':
+        # For action cards, the cost notation might be in various columns
+        # Check common columns that might contain action costs
+        cost_notation = ""
+        for col in ['Build cost', 'Gain Material', 'Production Material']:
+            if row.get(col) and row[col].strip():
+                cost_notation = row[col].strip()
+                break
+
         return ActionCard(
             name=name,
             age=age,
+            cost_notation=cost_notation,
             card_text=card_text
         )
     elif category == 'Leader':
