@@ -1,0 +1,76 @@
+{
+  "game_board": {
+    "initial_age": "A",
+    "visible_civil_cards": 13,
+    "peaceful_version": true,
+    "initial_technologies": [
+      "Agricultura",
+      "Bronce",
+      "Filosofía",
+      "Religión",
+      "Guerreros",
+      "Despotismo"
+    ]
+  },
+  "blue_reserve": {
+    "total_cubes": 16,
+    "groups": [
+      {"cubes": 6, "corruption_penalty": -2},
+      {"cubes": 5, "corruption_penalty": -4},
+      {"cubes": 5, "corruption_penalty": -6}
+    ]
+  },
+  "yellow_reserve": {
+    "total_tokens": 24,
+    "reserve_tokens": 18,
+    "initial_tech_tokens": 5,
+    "population_groups": [
+      {"group": 1, "tokens": 2, "food_cost": 3, "consumption": -1},
+      {"group": 2, "tokens": 2, "food_cost": 4, "consumption": -2},
+      {"group": 3, "tokens": 2, "food_cost": 5, "consumption": -2},
+      {"group": 4, "tokens": 2, "food_cost": 5, "consumption": -3},
+      {"group": 5, "tokens": 2, "food_cost": 7, "consumption": -3},
+      {"group": 6, "tokens": 2, "food_cost": 7, "consumption": -4},
+      {"group": 7, "tokens": 2, "food_cost": 7, "consumption": -4},
+      {"group": 8, "tokens": 2, "food_cost": 7, "consumption": -6}
+    ],
+    "happiness_requirement": 1
+  },
+  "player_initial_state": {
+    "indicators": {
+      "science": 1,
+      "culture": 0,
+      "strength": 1,
+      "happiness": 0
+    },
+    "points": {
+      "science": 0,
+      "culture": 0
+    },
+    "civil_actions_by_position": [1, 2, 3, 4],
+    "military_actions": 0,
+    "government": "Despotismo",
+    "urban_building_limit": 2
+  },
+  "initial_production": {
+    "Agricultura": {"food": 1},
+    "Bronce": {"resource": 1},
+    "Filosofía": {"science": 1},
+    "Religión": {"culture": 1, "happiness": 1}
+  },
+  "special_conditions": {
+    "revolt": {
+      "condition": "unemployed_workers > happiness_points",
+      "description": "Revuelta si trabajadores desocupados > puntos de felicidad"
+    },
+    "corruption": {
+      "trigger": "blue_reserve_negative_positions",
+      "payment_order": ["resources", "food", "culture_penalty"],
+      "culture_penalty_per_missing": 4
+    },
+    "food_consumption": {
+      "trigger": "even_group_second_position_filled",
+      "description": "Se activa al vaciar segundo hueco de grupos pares"
+    }
+  }
+}

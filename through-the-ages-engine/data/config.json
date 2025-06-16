@@ -1,0 +1,81 @@
+{
+  "game": {
+    "max_players": 4,
+    "min_players": 2,
+    "max_turns": 20,
+    "victory_points_to_win": 100,
+    "starting_resources": {
+      "food": 2,
+      "resource": 2,
+      "culture": 0,
+      "strength": 1,
+      "science": 1,
+      "happy": 1
+    }
+  },
+  "database": {
+    "host": "localhost",
+    "port": 27182,
+    "database_name": "through_the_ages"
+  },
+  "bots": {
+    "algorithmic_bot": {
+      "difficulties": {
+        "easy": {
+          "randomness": 0.3,
+          "production_focus": 0.4,
+          "military_focus": 0.2
+        },
+        "medium": {
+          "randomness": 0.15,
+          "production_focus": 0.35,
+          "military_focus": 0.25
+        },
+        "hard": {
+          "randomness": 0.05,
+          "production_focus": 0.3,
+          "military_focus": 0.3
+        }
+      }
+    },
+    "ai_bot": {
+      "learning_rate": 0.1,
+      "discount_factor": 0.95,
+      "epsilon_start": 0.1,
+      "epsilon_decay": 0.995,
+      "epsilon_min": 0.05,
+      "save_model_every": 100
+    }
+  },
+  "training": {
+    "default_training_games": 100,
+    "batch_size": 32,
+    "save_frequency": 50
+  },
+  "api": {
+    "host": "0.0.0.0",
+    "port": 5000,
+    "debug": true
+  }
+}
+    },
+    "ai_bot": {
+      "learning_rate": 0.1,
+      "exploration_rate": 0.2
+    }
+  },
+  "ui": {
+    "console": {
+      "enabled": true,
+      "theme": "default"
+    },
+    "web": {
+      "enabled": true,
+      "framework": "Flask"
+    }
+  },
+  "database": {
+    "connection_string": "mongodb://localhost:27182",
+    "collection_name": "game_data"
+  }
+}

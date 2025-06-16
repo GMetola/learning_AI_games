@@ -1,0 +1,104 @@
+Category,Frequency 4 players,Type,Card Name,Age,Tech cost,Build cost,Production Food,Production Resource,Production Culture,Production Strength,Production Happy,Production Science,Produce civil action,Produce military action,Gain Food,Gain Resource,Gain Culture,Gain Strength,Gain Happy,Gain Science,Gain civil action,Gain military action,Blue token,Yellow token,Included v0.1,Card text and comments
+Production,4,Farm,Agriculture,A,0,2,1,,,,,,,,,,,,,,,,,,1,
+Production,3,Farm,Irrigation,I,3,4,2,,,,,,,,,,,,,,,,,,1,
+Production,2,Farm,Selective Breeding,II,5,6,3,,,,,,,,,,,,,,,,,,1,
+Production,2,Farm,Mechanized Agriculture,III,7,8,5,,,,,,,,,,,,,,,,,,1,
+Production,4,Mine,Bronze,A,0,2,,1,,,,,,,,,,,,,,,,,1,
+Production,3,Mine,Iron,I,5,5,,2,,,,,,,,,,,,,,,,,1,
+Production,2,Mine,Coal,II,7,8,,3,,,,,,,,,,,,,,,,,1,
+Production,2,Mine,Oil,III,9,11,,5,,,,,,,,,,,,,,,,,1,
+Urban,4,Temple,Religion,A,0,3,,,1,,1,,,,,,,,,,,,,,1,
+Urban,2,Temple,Theology,I,2,5,,,1,,2,,,,,,,,,,,,,,1,
+Urban,2,Temple,Organized Religion,II,4,7,,,1,,3,,,,,,,,,,,,,,1,
+Urban,4,Lab,Philosophy,A,0,3,,,,,,1,,,,,,,,,,,,,1,
+Urban,3,Lab,Alchemy,I,4,6,,,,,,2,,,,,,,,,,,,,1,
+Urban,2,Lab,Scientific Method,II,6,8,,,,,,3,,,,,,,,,,,,,1,
+Urban,2,Lab,Computers,III,8,10,,,,,,5,,,,,,,,,,,,,1,
+Urban,2,Arena,Bread and Circuses,I,3,4,,,,1,2,,,,,,,,,,,,,,1,
+Urban,1,Arena,Team Sports,II,5,6,,,,2,3,,,,,,,,,,,,,,1,
+Urban,2,Arena,Professional Sports,III,7,8,,,,3,4,,,,,,,,,,,,,,1,
+Urban,2,Library,Printing Press,I,3,4,,,1,,,1,,,,,,,,,,,,,1,
+Urban,3,Library,Journalism,II,6,8,,,2,,,2,,,,,,,,,,,,,1,
+Urban,2,Library,Multimedia,III,9,11,,,3,,,3,,,,,,,,,,,,,1,
+Urban,2,Theater,Drama,I,4,5,,,2,,1,,,,,,,,,,,,,,1,
+Urban,2,Theater,Opera,II,7,9,,,3,,1,,,,,,,,,,,,,,1,
+Urban,2,Theater,Movies,III,10,12,,,4,,1,,,,,,,,,,,,,,1,
+Military,4,Infantry,Warriors,A,0,2,,,,1,,,,,,,,,,,,,,,1,
+Military,3,Infantry,Swordsmen,I,3,3,,,,2,,,,,,,,,,,,,,,1,
+Military,2,Infantry,Riflemen,II,5,5,,,,3,,,,,,,,,,,,,,,1,
+Military,2,Infantry,Modern Infantry,III,8,7,,,,5,,,,,,,,,,,,,,,1,
+Military,3,Cavalry,Knights,I,4,3,,,,2,,,,,,,,,,,,,,,1,
+Military,3,Cavalry,Calvarymen,II,6,5,,,,3,,,,,,,,,,,,,,,1,
+Military,2,Cavalry,Tanks,III,9,7,,,,5,,,,,,,,,,,,,,,1,
+Military,3,Artillery,Cannon,II,7,5,,,,3,,,,,,,,,,,,,,,1,
+Military,3,Artillery,Rockets,III,10,7,,,,5,,,,,,,,,,,,,,,1,
+Wonder,1,Wonder,Hanging Gardens,A,,2 2 2,,,1,,2,,,,,,,,,,,,,,1,
+Wonder,1,Wonder,Pyramids,A,,3 2 1,,,,,,,1,,,,,,,,,,,,1,
+Wonder,1,Wonder,Great Wall,I,,2 2 3 2,,,1,?,1,,,,,,,,,,,,,,1,Adds +1 to your strength for each infantry and artillery unit
+Wonder,1,Wonder,St. Peter's Basilica,I,,4 4,,,2,,?,,,,,,,,,,,,,,1,Each of your happy faces counts twice
+Wonder,1,Wonder,Universitas Carolina,I,,3 3 3,,,1,,,2,,,,,,,,,,,,,1,
+Wonder,1,Wonder,Taj Mahal,I,,2 4 2,,,3,,,,,,,,,,,,,,,,1,
+Wonder,1,Wonder,Transcontinental Railroad,II,,3 4 5,,?,,5,,,,,,,,,,,,,,,1,One of your best mines produces twice as many resources
+Wonder,1,Wonder,Eiffel Tower,II,,3 7 3,,,4,,1,,,,,,,,,,,,,,1,
+Wonder,1,Wonder,Kremlin,II,,4 4 4,,,3,,-2,,1,1,,,,,,,,,,,1,
+Wonder,1,Wonder,Ocean Liner Service,II,,3 2 2 2 3,,,,,,,,,,,,,,,,,,,1,"Once per turn, you can increase your population without a civil action for 5 food less"
+Wonder,1,Wonder,Hollywood,III,,5 6 5,,,,,,,,,,,,,,,,,,,1,Immediately score 2 culture per level of each of your theaters and libraries
+Wonder,1,Wonder,Internet,III,,2 3 4 3 2,,,,,,,,,,,,,,,,,,,1,Immediately score 2 culture per level of each of your labs and libraries
+Wonder,1,Wonder,First Space Flight,III,,3 4 9,,,,,,,,,,,,,,,,,,,1,Immediately score 1 culture per level of each of your technology cards
+Wonder,1,Wonder,Fast Food Chains,III,,4 4 4 4,,,,,,,,,,,,,,,,,,,1,"Immediately score 1 culture every military/urban worker, 2 culture every farmer/miner"
+Leader,1,Leader,Julius Caesar,A,,,,,,1,,,,1,,,,,,,,,,,1,
+Leader,1,Leader,Hammurabi,A,,,,,,,,,1,-1,,,,,,,,,,,1,
+Govt,4,Govt,Despotism,A,,,,,,,,,4,2,,,,,,,,,,,1,Building limit: 2
+Govt,2,Govt,Monarchy,I,3 (9),,,,,,,,5,3,,,,,,,,,,,1,Building limit: 3
+Govt,1,Govt,Theocracy,I,2 (7),,,,1,,2,,4,3,,,,,,,,,,,1,Building limit: 3
+Govt,2,Govt,Constitutional Monarchy,II,5 (12),,,,,,,,6,4,,,,,,,,,,,1,Building limit: 3
+Govt,2,Govt,Republic,II,4 (14),,,,,,,,7,2,,,,,,,,,,,1,Building limit: 3
+Govt,1,Govt,Communism,III,6 (17),,,,,,-1,,7,5,,,,,,,,,,,1,Building limit: 4
+Govt,2,Govt,Democracy,III,8 (21),,,,2,,,,7,3,,,,,,,,,,,1,Building limit: 4
+Govt,1,Govt,Fundamentalism,III,7 (19),,,,,5,,,6,5,,,,,,,,,,,1,Building limit: 4
+Special,2,Military,Warfare,I,4,,,,,1,,,,1,,,,,,,,,,,1,
+Special,1,Military,Strategy,II,8,,,,,3,,,,2,,,,,,,,,,,1,
+Special,2,Military,Military Theory,III,12,,,,,5,,,,3,,,,,,,,,,,1,
+Special,2,Civil,Code of Laws,I,6,,,,,,,,1,,,,,,,,,,,,1,
+Special,2,Civil,Justice System,II,7,,,,,,,,1,,,,,,,,,,3,,1,
+Special,1,Civil,Civil Service,III,10,,,,,,,,2,,,,,,,,,,3,,1,
+Action,1,Action,Engineering Genius,A,,,,,,,,,,,,2 W,,,,,,,,,1,Build 1 stage of wonder for 2 less resources
+Action,2,Action,Frugality,A,,,,,,,,,,,P 1,,,,,,,,,,1,Increase pop at full price; get 1 food
+Action,2,Action,Ideal Building Site,A,,,,,,,,,,,,1 U,,,,,,,,,1,Build a new urban building; pay 1 less resource
+Action,1,Action,Patriotism,A,,,,,,,,,,,,1 M,,,,,,1,,,1,This turn 1 extra mil action; 1 extra resource for mil units
+Action,1,Action,Revolutionary Idea,A,,,,,,,,,,,,,,,,1,,,,,1,Score 1 science
+Action,2,Action,Rich Land,A,,,,,,,,,,,,"""1 P""",,,,,,,,,1,Build a new mine or farm; pay 1 less resource
+Action,1,Action,Work of Art,A,,,,,,,,,,,,,,,,6,,,,,1,Score 6 culture
+Action,1,Action,Bountiful Harvest,I,,,,,,,,,,,2,,,,,,,,,,1,Produce 2 food
+Action,1,Action,Breakthrough,I,,,,,,,,,,,,,,,,T 2,,,,,1,Play a tech for full price; then score 2 science
+Action,2,Action,Efficient Upgrade,I,,,,,,,,,,,,2 PU,,,,,,,,,1,"Upgrade a farm, mine or urban bldg for 2 less resources"
+Action,1,Action,Engineering Genius,I,,,,,,,,,,,,3 W,,,,,,,,,1,Build 1 stage of wonder for 3 less resources
+Action,1,Action,Frugality,I,,,,,,,,,,,P 2,,,,,,,,,,1,Increase pop at full price; get 2 food
+Action,1,Action,Ideal Building Site,I,,,,,,,,,,,,2 U,,,,,,,,,1,Build a new urban building; pay 2 less resources
+Action,2,Action,Mineral Deposits,I,,,,,,,,,,,,2,,,,,,,,,1,Produce 2 resources
+Action,1,Action,Patriotism,I,,,,,,,,,,,,2 M,,,,,,1,,,1,This turn 1 extra mil action; 2 extra resources for mil units
+Action,1,Action,Revolutionary Idea,I,,,,,,,,,,,,,,,,2,,,,,1,Score 2 science
+Action,1,Action,Rich Land,I,,,,,,,,,,,,"""2 P""",,,,,,,,,1,Build a new mine or farm; pay 2 less resources
+Action,1,Action,Work of Art,I,,,,,,,,,,,,,,,,5,,,,,1,Score 5 culture
+Action,1,Action,Bountiful Harvest,II,,,,,,,,,,,3,,,,,,,,,,1,Produce 3 food
+Action,1,Action,Breakthrough,II,,,,,,,,,,,,,,,,T 4,,,,,1,Play a tech for full price; then score 4 science
+Action,2,Action,Efficient Upgrade,II,,,,,,,,,,,,3 PU,,,,,,,,,1,"Upgrade a farm, mine or urban bldg for 3 less resources"
+Action,1,Action,Engineering Genius,II,,,,,,,,,,,,4 W,,,,,,,,,1,Build 1 stage of wonder for 4 less resources
+Action,1,Action,Frugality,II,,,,,,,,,,,P 3,,,,,,,,,,1,Increase pop at full price; get 3 food
+Action,1,Action,Ideal Building Site,II,,,,,,,,,,,,3 U,,,,,,,,,1,Build a new urban building; pay 3 less resources
+Action,1,Action,Mineral Deposits,II,,,,,,,,,,,,3,,,,,,,,,1,Produce 3 resources
+Action,1,Action,Patriotism,II,,,,,,,,,,,,3 M,,,,,,1,,,1,This turn 1 extra mil action; 3 extra resources for mil units
+Action,1,Action,Revolutionary Idea,II,,,,,,,,,,,,,,,,4,,,,,1,Score 4 science
+Action,1,Action,Rich Land,II,,,,,,,,,,,,"""3 P""",,,,,,,,,1,Build a new mine or farm; pay 3 less resources
+Action,1,Action,Wave of Nationalism,II,,,,,,,,,,,,? M,,,,,,,,,1,"For each civ stronger than you, get +resources for mil units: 2 in 4er, 3 in 3er, 6 in 2er"
+Action,1,Action,Work of Art,II,,,,,,,,,,,,,,,,4,,,,,1,Score 4 culture
+Action,1,Action,Bountiful Harvest,III,,,,,,,,,,,4,,,,,,,,,,1,Produce 4 food
+Action,2,Action,Efficient Upgrade,III,,,,,,,,,,,,,,,,T 4,,,,,1,"Upgrade a farm, mine or urban bldg for 4 less resources"
+Action,1,Action,Endowment for the Arts,III,,,,,,,,,,,,,?,,,,,,,,1,"Score culture for each civ with more culture than you, 2 in 4er, 3 in 3er, 6 in 2er"
+Action,1,Action,Engineering Genius,III,,,,,,,,,,,,5 W,,,,,,,,,1,Build 1 stage of wonder for 5 less resources
+Action,2,Action,Ideal Building Site,III,,,,,,,,,,,P 4,,,,,,,,,,1,Build a new urban building; pay 4 less resources
+Action,1,Action,Military Build-Up,III,,,,,,,,,,,,? M,,,,,,,,,1,"For each civ stronger than you, get +resources for mil units: 3 in 4er, 5 in 3er, 8 in 2er"
+Action,2,Action,Mineral Deposits,III,,,,,,,,,,,,4 U,,,,,,,,,1,Produce 4 resources
+Action,1,Action,Patriotism,III,,,,,,,,,,,,4 M,,,,,,1,,,1,This turn 1 extra mil action; 4 extra resources for mil units
+Action,1,Action,Revolutionary Idea,III,,,,,,,,,,,,,,,,6,,,,,1,Score 6 science
+Action,1,Action,Work of Art,III,,,,,,,,,,,,,3,,,,,,,,1,Score 3 culture
