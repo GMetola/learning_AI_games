@@ -1,7 +1,26 @@
 import random
 import logging
+import sys
+import os
 from typing import Dict, List
 from .base_bot import BaseBot
+
+# Handle GameAction import for both package and direct script execution
+GameAction = None
+try:
+    from ..game.actions import GameAction
+except (ImportError, ValueError):
+    # Fallback for when running as script directly
+    try:
+        from game.actions import GameAction
+    except ImportError:
+        # Final fallback - add src to path and try again
+        sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+        try:
+            from game.actions import GameAction
+        except ImportError:
+            # If still failing, we'll handle it later in the code
+            pass
 
 class AlgorithmicBot(BaseBot):
     def __init__(self, bot_id: str, name: str, difficulty: str = "medium"):
@@ -57,15 +76,22 @@ class AlgorithmicBot(BaseBot):
         Returns:
             Dict: Acción seleccionada en formato dict
         """
-        # Import here to avoid circular imports
-        from ..game.actions import GameAction
+        global GameAction
+        # Ensure GameAction is available
+        if GameAction is None:
+            try:
+                from game.actions import GameAction
+            except ImportError:
+                # If we still can't import, treat all actions as dict format
+                logging.warning("GameAction not available, treating all actions as dict format")
+                pass
 
         if not available_actions:
             logging.warning(f"Bot {self.name}: Sin acciones disponibles")
             return {'type': 'end_turn'}
 
         # Convert GameAction objects to evaluation format if needed
-        if available_actions and isinstance(available_actions[0], GameAction):
+        if available_actions and GameAction and isinstance(available_actions[0], GameAction):
             # Evaluate each GameAction
             scored_actions = []
             for action in available_actions:
@@ -166,7 +192,7 @@ class AlgorithmicBot(BaseBot):
             if hasattr(card, 'production') and card.production:
                 if 'food' in card.production:
                     score += 20
-                if 'resource' in card.production:
+                if 'material' in card.production:
                     score += 15
                 if 'science' in card.production:
                     score += 25
@@ -257,7 +283,7 @@ class AlgorithmicBot(BaseBot):
             # EVALUACIÓN DE RECURSOS
             resources = player_board.resources
             score += resources.get('food', 0) * 0.1
-            score += resources.get('resource', 0) * 0.1
+            score += resources.get('material', 0) * 0.1
             score += resources.get('science', 0) * 0.15
             score += resources.get('culture', 0) * 0.2
 

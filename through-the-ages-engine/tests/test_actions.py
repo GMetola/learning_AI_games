@@ -31,14 +31,21 @@ class TestGameActions(unittest.TestCase):
         self.validator = ActionValidator(self.game_state)
         self.executor = ActionExecutor(self.game_state)        # Get first player for testing
         self.player1 = self.game_state.players[0]
-        self.player2 = self.game_state.players[1]
-
-        # Initialize some mock cards for testing
+        self.player2 = self.game_state.players[1]        # Initialize some mock cards for testing
         self.game_state.board.visible_civil_cards = [
             {"name": "Mock Card 1", "type": "building"},
             {"name": "Mock Card 2", "type": "technology"},
             {"name": "Mock Card 3", "type": "wonder"}
         ]
+
+    def create_mock_bot(self):
+        """Create a mock bot for testing"""
+        class MockBot:
+            def consume_civil_action(self, cost):
+                pass
+            def consume_military_action(self, cost):
+                pass
+        return MockBot()
 
     def test_action_factory_creation(self):
         """Test ActionFactory creates actions correctly"""
@@ -51,13 +58,11 @@ class TestGameActions(unittest.TestCase):
         # Test increase population action
         pop_action = ActionFactory.create_increase_population_action(1)
         self.assertEqual(pop_action.action_type, 'aumentar_población')
-        self.assertEqual(pop_action.cost['civil_actions'], 1)
-
-        # Test assign worker action
+        self.assertEqual(pop_action.cost['civil_actions'], 1)        # Test assign worker action
         worker_action = ActionFactory.create_assign_worker_action(1, 'Agricultura')
         self.assertEqual(worker_action.action_type, 'asignar_trabajador')
         self.assertEqual(worker_action.parameters['tech_name'], 'Agricultura')
-        self.assertEqual(worker_action.cost['civil_actions'], 0)
+        self.assertEqual(worker_action.cost['civil_actions'], 1)
 
         # Test end turn action
         end_action = ActionFactory.create_end_turn_action(1)
@@ -94,10 +99,9 @@ class TestGameActions(unittest.TestCase):
         initial_workers = player_board.yellow_reserves['available_workers']
         initial_has_tokens = player_board._has_available_yellow_tokens()
 
-        result = self.executor.execute_action(action)
-        self.assertTrue(result['success'], f"Execution should succeed: {result}")
-
-        # Check that population increased
+        mock_bot = self.create_mock_bot()
+        result = self.executor.execute_action(action, mock_bot)
+        self.assertTrue(result['success'], f"Execution should succeed: {result}")# Check that population increased
         self.assertEqual(
             player_board.yellow_reserves['available_workers'],
             initial_workers + 1
@@ -114,14 +118,30 @@ class TestGameActions(unittest.TestCase):
         initial_workers = player_board.yellow_reserves['available_workers']
         self.assertGreater(initial_workers, 0, "Player should have available workers")
 
-        # Create and validate worker assignment action
-        action = ActionFactory.create_assign_worker_action(1, 'Agricultura')
+        # Give player enough materials for worker assignment
+        player_board.resources['material'] = 5  # Enough for any technology        # Create and validate worker assignment action (use Religión which has 0 workers)
+        action = ActionFactory.create_assign_worker_action(1, 'Religión')
         is_valid, error = self.validator.validate_action(1, action)
         self.assertTrue(is_valid, f"Worker assignment should be valid: {error}")
 
+        # Create a mock bot
+        class MockBot:
+            def consume_civil_action(self, cost):
+                pass
+            def consume_military_action(self, cost):
+                pass
+
+        mock_bot = MockBot()
+
         # Execute the action
-        result = self.executor.execute_action(action)
-        self.assertTrue(result['success'], f"Execution should succeed: {result}")
+        result = self.executor.execute_action(action, mock_bot)
+        self.assertTrue(result['success'], f"Execution should succeed: {result}")        # Test validation failure when insufficient materials
+        player_board.yellow_reserves['available_workers'] = 2  # Give more workers
+        player_board.resources['material'] = 0  # Remove materials
+        action2 = ActionFactory.create_assign_worker_action(1, 'Bronce')
+        is_valid2, error2 = self.validator.validate_action(1, action2)
+        self.assertFalse(is_valid2, "Worker assignment should be invalid with insufficient materials")
+        self.assertIn("Materiales insuficientes", error2, "Error should mention insufficient materials")
 
     def test_civil_action_tracking(self):
         """Test that civil actions are properly tracked and limited"""
@@ -130,12 +150,11 @@ class TestGameActions(unittest.TestCase):
 
         # Initially should have 0 used civil actions
         used_actions = getattr(player_board, 'used_civil_actions', 0)
-        self.assertEqual(used_actions, 0)
-
-        # Execute 4 population increases (uses 4 civil actions)
+        self.assertEqual(used_actions, 0)        # Execute 4 population increases (uses 4 civil actions)
+        mock_bot = self.create_mock_bot()
         for i in range(4):
             action = ActionFactory.create_increase_population_action(1)
-            result = self.executor.execute_action(action)
+            result = self.executor.execute_action(action, mock_bot)
             self.assertTrue(result['success'], f"Action {i+1} should succeed")
 
         # Check that civil actions are tracked
@@ -169,9 +188,7 @@ class TestGameActions(unittest.TestCase):
 
         # Use some civil actions first
         player_board.used_civil_actions = 2
-        player_board.used_military_actions = 1
-
-        # Create and execute end turn action
+        player_board.used_military_actions = 1        # Create and execute end turn action
         action = ActionFactory.create_end_turn_action(1)
         result = self.executor.execute_action(action)
 
@@ -184,6 +201,11 @@ class TestGameActions(unittest.TestCase):
 
     def test_action_utils(self):
         """Test ActionUtils functionality"""
+        # Give player enough resources for actions
+        player_board = self.player1.board
+        player_board.resources['food'] = 10
+        player_board.resources['material'] = 5
+
         # Create different types of actions
         actions = [
             ActionFactory.create_take_card_action(1, 0),
@@ -197,7 +219,7 @@ class TestGameActions(unittest.TestCase):
         self.assertEqual(len(pop_actions), 1)
         self.assertEqual(pop_actions[0].action_type, 'aumentar_población')        # Test cost calculation
         total_cost = ActionUtils.calculate_total_cost(actions)
-        self.assertEqual(total_cost['civil_actions'], 2)  # take card + increase pop
+        self.assertEqual(total_cost['civil_actions'], 3)  # take card + increase pop + assign worker
         self.assertEqual(total_cost['military_actions'], 0)
 
         # Test action sequence validation
@@ -209,9 +231,7 @@ class TestGameActions(unittest.TestCase):
         ]
         is_valid, error = ActionUtils.validate_action_sequence(mixed_actions, self.game_state)
         # Should be invalid because player 2 tries to act on player 1's turn
-        self.assertFalse(is_valid)
-
-        # Test valid sequence for current player
+        self.assertFalse(is_valid)        # Test valid sequence for current player
         valid_actions = [
             ActionFactory.create_take_card_action(1, 0),
             ActionFactory.create_increase_population_action(1),
@@ -227,16 +247,18 @@ class TestGameActions(unittest.TestCase):
         """Test executing multiple actions in sequence"""
         player_board = self.player1.board
         player_board.resources['food'] = 10
+        player_board.resources['material'] = 5  # Give enough materials for worker assignment
 
-        # Create sequence of actions
+        # Create sequence of actions - use Religión instead of Agricultura to avoid max workers issue
         actions = [
-            ActionFactory.create_assign_worker_action(1, 'Agricultura'),
+            ActionFactory.create_assign_worker_action(1, 'Religión'),
             ActionFactory.create_increase_population_action(1),
             ActionFactory.create_end_turn_action(1)
         ]
 
         # Execute multiple actions
-        results = self.executor.execute_multiple_actions(actions)
+        mock_bot = self.create_mock_bot()
+        results = self.executor.execute_multiple_actions(actions, mock_bot)
 
         self.assertEqual(len(results), 3)
 

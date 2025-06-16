@@ -123,6 +123,14 @@ class ActionValidator:
         if tech_name not in player_board.current_technologies:
             return False, f"Tecnología no disponible: {tech_name}"
 
+        # Check if player has enough materials to assign worker
+        tech_info = player_board.current_technologies[tech_name]
+        if 'card_object' in tech_info:
+            tech_card = tech_info['card_object']
+            material_cost = tech_card.build_cost
+            if player_board.resources['material'] < material_cost:
+                return False, f"Materiales insuficientes para asignar trabajador a {tech_name}: necesitas {material_cost}, tienes {player_board.resources['material']}"
+
         return True, ""
 
     def _validate_research_technology(self, player_board, action: GameAction) -> tuple:
@@ -261,11 +269,10 @@ class ActionExecutor:
         civil_cost = action.cost.get('civil_actions', 0)
         military_cost = action.cost.get('military_actions', 0)
 
-        if bot and hasattr(bot, 'consume_civil_action'):
-            if civil_cost > 0:
-                bot.consume_civil_action(civil_cost)
-            if military_cost > 0:
-                bot.consume_military_action(military_cost)
+        if civil_cost > 0:
+            bot.consume_civil_action(civil_cost)
+        if military_cost > 0:
+            bot.consume_military_action(military_cost)
 
         # ACTUALIZAR CONTADORES EN EL TABLERO DEL JUGADOR
         player_board = player.board
@@ -304,6 +311,7 @@ class ActionExecutor:
         # Añadir a tecnologías del jugador
         if card.card_type in ['Farm', 'Mine', 'Temple', 'Library']:
             player.board.current_technologies[card.name] = {
+                'card_object': card,  # Store the actual Card object
                 'production': card.production
             }
 
@@ -336,7 +344,12 @@ class ActionExecutor:
         player = self.game_state.players[action.player_id - 1]
         tech_name = action.parameters['tech_name']
 
-        success = player.board.assign_worker_to_technology(tech_name)
+        # Get the Card object from current_technologies
+        if tech_name in player.board.current_technologies:
+            tech_card = player.board.current_technologies[tech_name]['card_object']
+            success = player.board.assign_worker_to_building(tech_card)
+        else:
+            success = False
 
         if success:
             logging.info(f"Jugador {action.player_id} asignó trabajador a {tech_name}")
@@ -415,6 +428,7 @@ class ActionExecutor:
         # Añadir a tecnologías del jugador
         if card and card.card_type in ['Farm', 'Mine', 'Temple', 'Library']:
             player.board.current_technologies[card.name] = {
+                'card_object': card,  # Store the actual Card object
                 'production': card.production
             }
             # REGISTRAR COMO TECNOLOGÍA INVESTIGADA
@@ -452,11 +466,12 @@ class ActionExecutor:
             'next_player': self.game_state.get_current_player()
         }
 
-    def execute_multiple_actions(self, actions: List[GameAction]) -> List[Dict[str, Any]]:
+    def execute_multiple_actions(self, actions: List[GameAction], bot=None) -> List[Dict[str, Any]]:
         """Ejecuta múltiples acciones en secuencia
 
         Args:
             actions (List[GameAction]): Lista de acciones a ejecutar
+            bot: Bot que ejecuta las acciones (opcional)
 
         Returns:
             List[Dict]: Lista de resultados de cada acción
@@ -464,7 +479,7 @@ class ActionExecutor:
         results = []
 
         for action in actions:
-            result = self.execute_action(action)
+            result = self.execute_action(action, bot)
             results.append(result)
 
             # Si una acción falla, detener ejecución
@@ -526,7 +541,25 @@ class ActionFactory:
         return GameAction(
             action_type='asignar_trabajador',
             parameters={'tech_name': tech_name},
-            cost={'civil_actions': 0, 'military_actions': 0},
+            cost={'civil_actions': 1, 'military_actions': 0},
+            player_id=player_id
+        )
+
+    @staticmethod
+    def create_assign_warrior_action(player_id: int, tech_name: str) -> GameAction:
+        """Crea acción para asignar guerrero
+
+        Args:
+            player_id (int): ID del jugador
+            tech_name (str): Nombre de la tecnología
+
+        Returns:
+            GameAction: Acción de asignar trabajador
+        """
+        return GameAction(
+            action_type='asignar_guerrero',
+            parameters={'tech_name': tech_name},
+            cost={'civil_actions': 0, 'military_actions': 1},
             player_id=player_id
         )
 

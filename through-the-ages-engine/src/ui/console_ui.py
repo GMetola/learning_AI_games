@@ -133,7 +133,7 @@ class ConsoleUI:
             marker = ">>> " if i == self.game_state.current_turn else "    "
             print(f"{marker}{player.name}:")
             print(f"        Comida: {player.resources.get('food', 0)}")
-            print(f"        Recursos: {player.resources.get('resource', 0)}")
+            print(f"        Recursos: {player.resources.get('material', 0)}")
             print(f"        Cultura: {player.resources.get('culture', 0)}")
             print(f"        Fuerza: {player.resources.get('strength', 0)}")
             print(f"        Ciencia: {player.resources.get('science', 0)}")
@@ -285,7 +285,7 @@ class ConsoleUI:
 
         dummy_state = {
             'turn': 1,
-            'current_player_resources': {'food': 2, 'resource': 2, 'culture': 0, 'science': 1},
+            'current_player_resources': {'food': 2, 'material': 2, 'culture': 0, 'science': 1},
             'opponents_resources': [{'culture': 5}]
         }
 
@@ -329,5 +329,3 @@ if __name__ == "__main__":
     # Inicia interfaz de consola
     ui = ConsoleUI()
     ui.start_interactive_session()
-            # Aquí se procesaría la acción del jugador
-            self.display_message("Acción procesada.")

@@ -176,6 +176,7 @@ class GameState:
         # Agrega carta a tecnologías del jugador
         if card:
             player.board.current_technologies[card.name] = {
+                'card_object': card,  # Store the actual Card object
                 'type': card.get_type(),
                 'category': card.category,
                 'age': card.age,

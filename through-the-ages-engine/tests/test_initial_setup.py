@@ -67,7 +67,7 @@ def test_worker_assignment():
     print(f"Inicial - Disponibles: {initial_available}, Agricultura: {initial_agricultura}")
 
     # ASIGNAR TRABAJADOR A AGRICULTURA
-    success = player_board.assign_worker_to_technology('Agricultura')
+    success = player_board.assign_worker_to_building('Agricultura')
 
     final_available = player_board.yellow_reserves['available_workers']
     final_agricultura = player_board.yellow_reserves['technology_workers']['Agricultura']
@@ -83,7 +83,7 @@ def test_worker_assignment():
 
     # INTENTAR ASIGNAR SIN TRABAJADORES DISPONIBLES
     player_board.yellow_reserves['available_workers'] = 0
-    success = player_board.assign_worker_to_technology('Bronce')
+    success = player_board.assign_worker_to_building('Bronce')
 
     assert success == False, "No debería poder asignar trabajador sin disponibles"
     print("✓ Validación sin trabajadores disponibles correcta!")

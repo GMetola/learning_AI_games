@@ -93,7 +93,7 @@ def test_worker_assignment():
     board = player.board    # Assign worker to Agriculture (already has 2, so will become 3)
     initial_available = board.yellow_reserves['available_workers']
     initial_agricultura = board.yellow_reserves['technology_workers']['Agricultura']
-    success = board.assign_worker_to_technology('Agricultura')
+    success = board.assign_worker_to_building('Agricultura')
 
     assert success, "Worker assignment should succeed"
     assert board.yellow_reserves['available_workers'] == initial_available - 1

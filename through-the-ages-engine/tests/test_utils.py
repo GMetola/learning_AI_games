@@ -60,7 +60,7 @@ def setup_production_test_state(player_board):
     for tech in initial_technologies:
         if (player_board.yellow_reserves['available_workers'] > 0 and
             tech in player_board.current_technologies):
-            player_board.assign_worker_to_technology(tech)
+            player_board.assign_worker_to_building(tech)
             print(f"   ✓ Trabajador asignado a {tech}")
 
     # PREVENCIÓN REVUELTAS

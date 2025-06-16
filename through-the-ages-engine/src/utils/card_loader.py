@@ -94,7 +94,7 @@ class CardLoader:
             # Crea diccionarios de producción y ganancia
             production = {
                 'food': row.get('Production Food', 0),
-                'resource': row.get('Production Resource', 0),
+                'material': row.get('Production Material', 0),
                 'culture': row.get('Production Culture', 0),
                 'strength': row.get('Production Strength', 0),
                 'happy': row.get('Production Happy', 0),
@@ -105,7 +105,7 @@ class CardLoader:
 
             gain = {
                 'food': row.get('Gain Food', 0),
-                'resource': row.get('Gain Resource', 0),
+                'material': row.get('Gain Material', 0),
                 'culture': row.get('Gain Culture', 0),
                 'strength': row.get('Gain Strength', 0),
                 'happy': row.get('Gain Happy', 0),

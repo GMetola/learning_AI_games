@@ -162,7 +162,7 @@ class SimulationController:
                 game_log.append(action_log)
 
                 if verbose:
-                    logging.info(f"  Action: {selected_action.action_type} - Success: {result.get('success', False)}")                # Check if action was end turn or if turn should advance
+                    logging.info(f"Action: {selected_action.action_type} - Success: {action_log['success']}")
                 if selected_action.action_type == 'terminar_turno':
                     # Reset action counters for next turn
                     next_player_idx = game_state.current_turn

@@ -138,7 +138,7 @@ class PlayerBoard:
         # RECURSOS DEL JUGADOR
         self.resources = {
             'food': 0,
-            'resource': 0,
+            'material': 0,
             'science': 1,      # Comienza con 1 ciencia
             'culture': 0,
             'happy': 0,
@@ -159,11 +159,70 @@ class PlayerBoard:
         }
 
         # TECNOLOGÍAS Y CONSTRUCCIONES
+        # Create Card objects for initial technologies
+        from .cards import Card
+
+        inicial_agricultura = Card(
+            name='Agricultura',
+            category='Production',
+            age='A',
+            tech_cost=0,
+            build_cost=2,
+            production={'food': 1},
+            gain={},
+            card_text='Tecnología inicial de agricultura'
+        )
+
+        inicial_bronce = Card(
+            name='Bronce',
+            category='Production',
+            age='A',
+            tech_cost=0,
+            build_cost=2,
+            production={'material': 1},
+            gain={},
+            card_text='Tecnología inicial de bronce'
+        )
+
+        inicial_filosofia = Card(
+            name='Filosofía',
+            category='Production',
+            age='A',
+            tech_cost=0,
+            build_cost=3,
+            production={'science': 1},
+            gain={},
+            card_text='Tecnología inicial de filosofía'
+        )
+
+        inicial_religion = Card(
+            name='Religión',
+            category='Production',
+            age='A',
+            tech_cost=0,
+            build_cost=3,
+            production={'culture': 1, 'happy': 1},
+            gain={},
+            card_text='Tecnología inicial de religión'
+        )
+
         self.current_technologies = {
-            'Agricultura': {'production': {'food': 1}},
-            'Bronce': {'production': {'resource': 1}},
-            'Filosofía': {'production': {'science': 1}},
-            'Religión': {'production': {'culture': 1, 'happy': 1}}
+            'Agricultura': {
+                'card_object': inicial_agricultura,
+                'production': {'food': 1}
+            },
+            'Bronce': {
+                'card_object': inicial_bronce,
+                'production': {'material': 1}
+            },
+            'Filosofía': {
+                'card_object': inicial_filosofia,
+                'production': {'science': 1}
+            },
+            'Religión': {
+                'card_object': inicial_religion,
+                'production': {'culture': 1, 'happy': 1}
+            }
         }
 
         # CONFIGURACIÓN POBLACIÓN
@@ -255,15 +314,15 @@ class PlayerBoard:
         """Obtiene el coste en comida para aumentar población desde el primer grupo no ocupado
 
         Returns:
-            int: Coste en comida (0 si todos los grupos están ocupados)
+            int: Coste en comida (2 si todos los grupos están ocupados)
         """
         # BUSCA PRIMER GRUPO NO OCUPADO
         for group in self.yellow_reserves['groups']:
             if not group['occupied']:
                 return group['coste_nuevo']
 
-        # SI TODOS LOS GRUPOS ESTÁN OCUPADOS, COSTO ES 0
-        return 0
+        # SI TODOS LOS GRUPOS ESTÁN OCUPADOS, COSTO ES 2
+        return 2
 
     def get_food_consumption(self) -> int:
         """Obtiene el consumo de comida actual desde el primer grupo no ocupado
@@ -288,15 +347,16 @@ class PlayerBoard:
         return (self._has_available_yellow_tokens() and
                 self.resources['food'] >= self.get_population_cost())
 
-    def assign_worker_to_technology(self, tech_name: str) -> bool:
+    def assign_worker_to_building(self, tech_card: Card) -> bool:
         """Asigna un trabajador a una tecnología específica
 
         Args:
-            tech_name (str): Nombre de la tecnología
+            tech_card (Card): Objeto de carta de la tecnología
 
         Returns:
             bool: True si se pudo asignar el trabajador
         """
+        tech_name = tech_card.name
         # Verifica si hay trabajadores disponibles
         if self.yellow_reserves['available_workers'] <= 0:
             return False
@@ -309,12 +369,21 @@ class PlayerBoard:
         if tech_name in self.yellow_reserves['technology_workers']:
             # TODO: el máximo de trabajadores deberá ser definido por el tipo de gobierno.
             # TODO: Los gobiernos están definidos como Govt en el archivo cards.py y el máximo de trabajadores por tecnología está definido en la columna 'Card text and comments'
-            MAX_WORKERS_PER_TECH = 3  # TEMPORAL
+            MAX_WORKERS_PER_TECH = 2  # TEMPORAL
             if self.yellow_reserves['technology_workers'][tech_name] >= MAX_WORKERS_PER_TECH:
                 logging.warning(f"Máximo de trabajadores alcanzado para {tech_name}")
                 return False
 
+        # Verifica que se puede pagar el coste de asignación (materiales)
+        if self.resources['material'] < tech_card.build_cost:
+            logging.warning(f"Jugador {self.player_id}: insuficientes materiales para asignar trabajador a {tech_name} (necesita {tech_card.build_cost}, tiene {self.resources['material']})")
+            return False
+
         # ASIGNACIÓN
+        # Paga el coste de asignación
+        self.resources['material'] -= tech_card.build_cost
+        logging.info(f"Jugador {self.player_id}: pagó {tech_card.build_cost} materiales para asignar trabajador a {tech_name}")
+
         # Mueve trabajador: disponibles -> tecnología específica
         self.yellow_reserves['available_workers'] -= 1
 
@@ -345,15 +414,13 @@ class PlayerBoard:
 
     def _take_blue_token_from_group(self) -> bool:
         """Toma una ficha azul del primer grupo ocupado disponible"""
-        for group in self.blue_reserves['groups']:
+        for i, group in enumerate(self.blue_reserves['groups']):
             if group['occupied'] and group['tokens'] > 0:
                 group['tokens'] -= 1
-
                 # MARCAR GRUPO COMO NO OCUPADO SI SE VACÍA
                 if group['tokens'] == 0:
                     group['occupied'] = False
-                    logging.info(f"Jugador {self.player_id}: grupo azul vaciado, marcado como no ocupado")
-
+                    logging.info(f"Jugador {self.player_id}: grupo azul {i} vaciado, marcado como no ocupado")
                 return True
         return False
 
@@ -412,12 +479,12 @@ class PlayerBoard:
         culture_lost = 0
 
         # PAGO CORRUPCIÓN
-        if self.resources['resource'] >= corruption_cost:
-            self.resources['resource'] -= corruption_cost
+        if self.resources['material'] >= corruption_cost:
+            self.resources['material'] -= corruption_cost
             resources_paid = corruption_cost
         else:
-            resources_paid = self.resources['resource'].copy()
-            self.resources['resource'] = 0
+            resources_paid = self.resources['material'].copy()
+            self.resources['material'] = 0
             remaining_cost = corruption_cost - resources_paid
 
             # 2. Usar comida para el resto
@@ -447,7 +514,7 @@ class PlayerBoard:
         Returns:
             Dict[str, int]: Producción de cada recurso
         """
-        production = {'food': 0, 'resource': 0, 'science': 0, 'culture': 0, 'happy': 0}
+        production = {'food': 0, 'material': 0, 'science': 0, 'culture': 0, 'happy': 0}
 
         # PRODUCCIÓN POR TECNOLOGÍAS
         for tech_name, workers_assigned in self.yellow_reserves['technology_workers'].items():
@@ -471,10 +538,10 @@ class PlayerBoard:
             logging.warning(f"Jugador {self.player_id} en revuelta - producción bloqueada")
             return {
                 'revolt': True,
-                'production': {'food': 0, 'resource': 0, 'science': 0, 'culture': 0, 'happy': 0},
+                'production': {'food': 0, 'material': 0, 'science': 0, 'culture': 0, 'happy': 0},
                 'consumption': {},
                 'corruption': {'corruption': 0, 'resources_paid': 0, 'food_paid': 0, 'culture_lost': 0},
-                'net_resources': {'food': 0, 'resource': 0, 'science': 0, 'culture': 0}
+                'net_resources': {'food': 0, 'material': 0, 'science': 0, 'culture': 0}
             }
 
         # CALCULAR PRODUCCIÓN
@@ -495,7 +562,7 @@ class PlayerBoard:
         net_food = production['food'] - food_consumption
 
         # PRODUCCIÓN MATERIAL
-        self.resources['resource'] += production['resource']
+        self.resources['material'] += production['material']
 
         # ACTUALIZAR INDICADORES DE FELICIDAD
         if production['happiness'] > 0:
@@ -504,7 +571,7 @@ class PlayerBoard:
         # CALCULAR RECURSOS NETOS
         net_resources = {
             'food': net_food - corruption_payment['food_paid'],
-            'resource': production['resource'] - corruption_payment['resources_paid'],
+            'material': production['material'] - corruption_payment['resources_paid'],
             'science': production['science'],
             'culture': production['culture'] - corruption_payment['culture_lost']
         }
@@ -634,3 +701,78 @@ class PlayerBoard:
     def add_military_action_bonus(self, bonus: int):
         """Añade bonificación a acciones militares"""
         self.turn_improvements['military_actions_bonus'] += bonus
+
+    def get_available_civil_actions(self, player_id: int) -> List[Dict[str, Any]]:
+        """Obtiene acciones civiles disponibles para un jugador específico
+
+        Args:
+            player_id (int): ID del jugador
+
+        Returns:
+            List[Dict]: Lista de acciones civiles disponibles
+        """
+        if player_id not in self.player_boards:
+            return []
+
+        player_board = self.player_boards[player_id]
+        available_actions = []
+
+        # Check available civil actions
+        civil_actions_left = player_board.get_civil_actions_available()
+        if civil_actions_left <= 0:
+            return available_actions  # No civil actions left
+
+        # Action: Increase Population
+        if player_board.resources['food'] >= 3:  # Minimum cost for population increase
+            available_actions.append({
+                'type': 'aumentar_poblacion',
+                'cost': {'civil_actions': 1, 'military_actions': 0},
+                'resource_cost': {'food': 3},  # Base cost, actual cost may vary
+                'description': 'Aumentar población'
+            })
+
+        # Action: Assign Worker to Technologies
+        if player_board.yellow_reserves['available_workers'] > 0:
+            for tech_name, tech_data in player_board.current_technologies.items():
+                if 'card_object' in tech_data:
+                    tech_card = tech_data['card_object']
+                    material_cost = tech_card.build_cost
+
+                    # Check if player has enough materials
+                    if player_board.resources['material'] >= material_cost:
+                        # Check if not at max workers for this technology
+                        current_workers = player_board.yellow_reserves['technology_workers'].get(tech_name, 0)
+                        MAX_WORKERS_PER_TECH = 2  # TODO: This should come from government
+
+                        if current_workers < MAX_WORKERS_PER_TECH:
+                            available_actions.append({
+                                'type': 'asignar_trabajador',
+                                'cost': {'civil_actions': 1, 'military_actions': 0},
+                                'resource_cost': {'material': material_cost},
+                                'parameters': {'tech_name': tech_name},
+                                'description': f'Asignar trabajador a {tech_name} (costo: {material_cost} materiales)'
+                            })
+
+        # Action: Take Card (if visible cards available)
+        if hasattr(self, 'visible_civil_cards') and self.visible_civil_cards:
+            for i, card in enumerate(self.visible_civil_cards):
+                available_actions.append({
+                    'type': 'tomar_carta',
+                    'cost': {'civil_actions': 1, 'military_actions': 0},
+                    'resource_cost': {},  # Usually no resource cost for taking cards
+                    'parameters': {'card_position': i},
+                    'description': f'Tomar carta: {card.get("name", "Carta desconocida")}'
+                })
+
+        # Action: Research Technology (if player has science)
+        if player_board.resources['science'] > 0:
+            # This would need to check available technologies to research
+            # For now, add a generic research action
+            available_actions.append({
+                'type': 'investigar_tecnologia',
+                'cost': {'civil_actions': 1, 'military_actions': 0},
+                'resource_cost': {'science': 1},  # Minimum cost
+                'description': 'Investigar nueva tecnología'
+            })
+
+        return available_actions

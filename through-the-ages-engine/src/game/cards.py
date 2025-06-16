@@ -70,7 +70,7 @@ class CardManager:
                 build_cost=data['Build cost'],
                 production={
                     'Food': data['Production Food'],
-                    'Resource': data['Production Resource'],
+                    'Material': data['Production Material'],
                     'Culture': data['Production Culture'],
                     'Strength': data['Production Strength'],
                     'Happy': data['Production Happy'],
@@ -78,7 +78,7 @@ class CardManager:
                 },
                 gain={
                     'Food': data['Gain Food'],
-                    'Resource': data['Gain Resource'],
+                    'Material': data['Gain Material'],
                     'Culture': data['Gain Culture'],
                     'Strength': data['Gain Strength'],
                     'Happy': data['Gain Happy'],
@@ -218,7 +218,7 @@ class CardLoader:
             # Crea diccionarios de producción y ganancia
             production = {
                 'food': row.get('Production Food', 0),
-                'resource': row.get('Production Resource', 0),
+                'material': row.get('Production Material', 0),
                 'culture': row.get('Production Culture', 0),
                 'strength': row.get('Production Strength', 0),
                 'happy': row.get('Production Happy', 0),
@@ -229,7 +229,7 @@ class CardLoader:
 
             gain = {
                 'food': row.get('Gain Food', 0),
-                'resource': row.get('Gain Resource', 0),
+                'material': row.get('Gain Material', 0),
                 'culture': row.get('Gain Culture', 0),
                 'strength': row.get('Gain Strength', 0),
                 'happy': row.get('Gain Happy', 0),

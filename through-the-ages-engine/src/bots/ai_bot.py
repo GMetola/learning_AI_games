@@ -76,7 +76,7 @@ class AIBot(BaseBot):
         # Simplifica el estado a características clave
         state_features = [
             min(player_resources.get('food', 0), 10),  # Limita valores para reducir espacio de estados
-            min(player_resources.get('resource', 0), 10),
+            min(player_resources.get('material', 0), 10),
             min(player_resources.get('culture', 0), 50),
             min(player_resources.get('strength', 0), 10),
             min(game_state.get('turn', 0), 20)
