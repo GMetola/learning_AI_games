@@ -100,11 +100,10 @@ class Player:
         """
         if self.board:
             revolt = self.board.check_revolt_condition()
-            happiness = self.board.indicators['happiness']
             unemployed = self.get_available_workers()
 
             return {
-                'happiness_points': happiness,
+                'happiness_points': self.board.resources['happy'],
                 'unemployed_workers': unemployed,
                 'revolt_risk': revolt,
                 'status': 'REVUELTA' if revolt else 'ESTABLE'

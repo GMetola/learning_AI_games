@@ -28,23 +28,25 @@ def test_individual_reserves():
     for i, player in enumerate(game.players):
         player_id = player.player_id
         board = player.board
+        player_resources = board.resource_manager
+        player_workers = board.worker_manager
 
         print(f"\n--- Player {player_id}: {player.name} ---")
-        print(f"Yellow reserves: {board.yellow_reserves}")
-        print(f"Blue reserves: {board.blue_reserves}")
+        print(f"Yellow reserves: {player_workers.yellow_reserves}")
+        print(f"Blue reserves: {player_resources.blue_reserves}")
         print(f"Resources: {board.resources}")
         print(f"Population cost: {board.get_population_cost()}")        # Test initial state - using new group system
         # Check that player has yellow tokens available in groups
-        has_available_tokens = board._has_available_yellow_tokens()
+        has_available_tokens = player_workers.has_available_yellow_tokens()
         assert has_available_tokens, f"Player {player_id} should have available yellow tokens in groups"
 
-        assert board.yellow_reserves['available_workers'] == 1, f"Player {player_id} should start with 1 available worker"
+        assert player_workers.yellow_reserves['available_workers'] == 1, f"Player {player_id} should start with 1 available worker"
 
         # Check that groups are properly initialized
-        assert len(board.yellow_reserves['groups']) == 8, f"Player {player_id} should have 8 yellow token groups"
+        assert len(player_workers.yellow_reserves['groups']) == 8, f"Player {player_id} should have 8 yellow token groups"
 
         # Check that blue groups are properly initialized
-        assert len(board.blue_reserves['groups']) == 3, f"Player {player_id} should have 3 blue token groups"
+        assert len(player_resources.blue_reserves['groups']) == 3, f"Player {player_id} should have 3 blue token groups"
 
         print(f"✓ Player {player_id} has correct initial reserves")
 
@@ -53,10 +55,11 @@ def test_individual_reserves():
     player1 = game.players[0]
     player1_board = player1.board    # Give player 1 enough food
     player1_board.resources['food'] = 10
+    player1_workers = player1_board.worker_manager
 
     # Track initial state using new group system
-    initial_has_tokens = player1_board._has_available_yellow_tokens()
-    initial_available = player1_board.yellow_reserves['available_workers']
+    initial_has_tokens = player1_workers.has_available_yellow_tokens()
+    initial_available = player1_workers.yellow_reserves['available_workers']
     initial_food = player1_board.resources['food']
     cost = player1_board.get_population_cost()
 
@@ -64,19 +67,19 @@ def test_individual_reserves():
     print(f"Cost to increase: {cost} food")
 
     # Increase population
-    success = player1_board.increase_population(cost)
+    success = player1_board.increase_population()
     assert success, "Population increase should succeed"
 
-    print(f"Player 1 after increase: {player1_board.yellow_reserves['available_workers']} available workers, {player1_board.resources['food']} food")
+    print(f"Player 1 after increase: {player1_workers.yellow_reserves['available_workers']} available workers, {player1_board.resources['food']} food")
 
     # Verify changes only affected Player 1
-    assert player1_board.yellow_reserves['available_workers'] == initial_available + 1
+    assert player1_workers.yellow_reserves['available_workers'] == initial_available + 1
     assert player1_board.resources['food'] == initial_food - cost
 
     print("✓ Player 1 population increased correctly")    # Verify other players unchanged
     for i, player in enumerate(game.players[1:], 2):
-        assert player.board._has_available_yellow_tokens(), f"Player {i} should still have available tokens"
-        assert player.board.yellow_reserves['available_workers'] == 1, f"Player {i} should still have 1 available worker"
+        assert player.board.worker_manager.has_available_yellow_tokens(), f"Player {i} should still have available tokens"
+        assert player.board.worker_manager.yellow_reserves['available_workers'] == 1, f"Player {i} should still have 1 available worker"
         print(f"✓ Player {i} reserves unchanged")
 
     print("\n=== Individual Reserves Test PASSED ===")
@@ -91,20 +94,21 @@ def test_worker_assignment():
 
     player = game.players[0]
     board = player.board    # Assign worker to Agriculture (already has 2, so will become 3)
-    initial_available = board.yellow_reserves['available_workers']
-    initial_agriculture = board.yellow_reserves['technology_workers']['Agriculture']
+    player_workers = board.worker_manager
+    initial_available = player_workers.yellow_reserves['available_workers']
+    initial_agriculture = player_workers.yellow_reserves['technology_workers']['Agriculture']
     success = board.assign_worker_to_building('Agriculture')
 
     assert success, "Worker assignment should succeed"
-    assert board.yellow_reserves['available_workers'] == initial_available - 1
-    assert board.yellow_reserves['technology_workers']['Agriculture'] == initial_agriculture + 1
+    assert player_workers.yellow_reserves['available_workers'] == initial_available - 1
+    assert player_workers.yellow_reserves['technology_workers']['Agriculture'] == initial_agriculture + 1
 
     print("✓ Worker successfully assigned to Agriculture")
 
     # PREVENCIÓN REVUELTAS PARA PRUEBAS
     # Ajusta felicidad para evitar revueltas durante testing
-    print(f"Available workers: {board.yellow_reserves['available_workers']}")
-    print(f"Happiness points: {board.indicators['happiness']}")
+    print(f"Available workers: {player_workers.yellow_reserves['available_workers']}")
+    print(f"Happiness points: {board.resources['happy']}")
 
     prevent_revolt_for_testing(board)
     verify_no_revolt(board)    # Test production calculation
@@ -127,10 +131,11 @@ def test_corruption_system():
 
     player = game.players[0]
     board = player.board    # Simulate using blue tokens to trigger corruption
+    player_resources = board.resource_manager
     # We need to make some groups unoccupied to trigger corruption penalty
     # Remove tokens from the first group to make it unoccupied
-    board.blue_reserves['groups'][0]['tokens'] = 0
-    board.blue_reserves['groups'][0]['occupied'] = False
+    player_resources.blue_reserves['groups'][0]['tokens'] = 0
+    player_resources.blue_reserves['groups'][0]['occupied'] = False
 
     penalty = board.calculate_corruption_penalty()
     print(f"Corruption penalty with first group empty: {penalty}")

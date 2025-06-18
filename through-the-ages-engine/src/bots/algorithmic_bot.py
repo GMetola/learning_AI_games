@@ -90,12 +90,18 @@ class AlgorithmicBot(BaseBot):
             logging.warning(f"Bot {self.name}: Sin acciones disponibles")
             return {'type': 'end_turn'}
 
+        # Analyze player capabilities using new methods
+        capabilities = self._analyze_player_capabilities(game_state)
+        action_priorities = self._prioritize_actions_based_on_capabilities(game_state)
+
+        logging.info(f"Bot {self.name}: Analyzing capabilities - Civil actions: {capabilities['action_summary']['civil_actions_available']}, Can increase pop: {capabilities['population_check']['can_increase']}")
+
         # Convert GameAction objects to evaluation format if needed
         if available_actions and GameAction and isinstance(available_actions[0], GameAction):
-            # Evaluate each GameAction
+            # Evaluate each GameAction with capability awareness
             scored_actions = []
             for action in available_actions:
-                score = self._evaluate_game_action(action, game_state)
+                score = self._evaluate_game_action_with_capabilities(action, game_state, capabilities)
                 scored_actions.append((action, score))
         else:
             # Legacy format handling
@@ -448,3 +454,159 @@ class AlgorithmicBot(BaseBot):
             return 0.5
         else:
             return 0.2
+
+    def _analyze_player_capabilities(self, game_state) -> dict:
+        """Analyze what the player can do using the new player board methods
+
+        Args:
+            game_state: Current game state
+
+        Returns:
+            dict: Analysis of player capabilities
+        """
+        player = game_state.players[self.player_id - 1]
+        player_board = player.board
+
+        # Get comprehensive action summary
+        action_summary = player_board.get_available_actions_summary()
+
+        # Check specific action capabilities
+        population_check = player_board.can_increase_population_with_details()
+
+        # Check worker assignment possibilities for all developed technologies
+        worker_assignments = {}
+        for tech_name in player_board.card_manager.get_all_technology_names():
+            worker_assignments[tech_name] = player_board.can_assign_worker_to_technology(tech_name)
+
+        # Check research possibilities for cards in hand
+        research_possibilities = {}
+        hand_cards = player_board.card_manager.get_hand_cards()
+        for card in hand_cards:
+            # Estimate science cost (in a real game, this would come from card data)
+            estimated_science_cost = getattr(card, 'science_cost', 1)
+            research_possibilities[card.name] = player_board.can_research_technology(card.name, estimated_science_cost)
+
+        # Check building possibilities for cards in hand
+        building_possibilities = {}
+        for card in hand_cards:
+            if hasattr(card, 'build_cost'):  # Only buildings have build costs
+                building_possibilities[card.name] = player_board.can_build_building(card.name)
+
+        return {
+            'action_summary': action_summary,
+            'population_check': population_check,
+            'worker_assignments': worker_assignments,
+            'research_possibilities': research_possibilities,
+            'building_possibilities': building_possibilities
+        }
+
+    def _prioritize_actions_based_on_capabilities(self, game_state) -> List[str]:
+        """Prioritize actions based on what the player can actually do
+
+        Args:
+            game_state: Current game state
+
+        Returns:
+            List[str]: Ordered list of recommended action types
+        """
+        capabilities = self._analyze_player_capabilities(game_state)
+        priorities = self._get_strategy_weights()
+        action_priorities = []
+
+        # Population growth priority
+        if capabilities['population_check']['can_increase']:
+            priority_score = priorities['population_priority']
+            action_priorities.append(('aumentar_población', priority_score))
+
+        # Worker assignment priorities
+        assignable_workers = [tech for tech, check in capabilities['worker_assignments'].items()
+                            if check['can_assign']]
+        if assignable_workers:
+            # Prioritize production buildings
+            for tech in assignable_workers:
+                if 'Farm' in tech or 'Mine' in tech:
+                    priority_score = priorities['production_priority']
+                    action_priorities.append(('asignar_trabajador', priority_score, tech))
+
+        # Research priorities
+        researchable_cards = [card for card, check in capabilities['research_possibilities'].items()
+                            if check['can_research']]
+        if researchable_cards:
+            for card in researchable_cards:
+                # Assign priority based on card type
+                if 'Farm' in card or 'Mine' in card:
+                    priority_score = priorities['production_priority']
+                elif 'Temple' in card or 'Library' in card:
+                    priority_score = priorities['culture_priority']
+                else:
+                    priority_score = 0.15  # Default priority
+                action_priorities.append(('research_technology', priority_score, card))
+
+        # Building priorities
+        buildable_cards = [card for card, check in capabilities['building_possibilities'].items()
+                         if check['can_build']]
+        if buildable_cards:
+            for card in buildable_cards:
+                priority_score = priorities['production_priority']
+                action_priorities.append(('construir_edificio', priority_score, card))
+
+        # Sort by priority score (descending)
+        action_priorities.sort(key=lambda x: x[1], reverse=True)
+
+        return action_priorities
+
+    def _evaluate_game_action_with_capabilities(self, action, game_state, capabilities) -> float:
+        """Evalúa una GameAction con conocimiento de las capacidades del jugador"""
+        action_type = action.action_type
+        score = 0.0
+
+        # Base evaluation using existing method
+        base_score = self._evaluate_game_action(action, game_state)
+        score += base_score
+
+        # Bonus scoring based on capability analysis
+        if action_type == 'aumentar_población':
+            pop_check = capabilities['population_check']
+            if pop_check['can_increase']:
+                # Higher priority if we have excess food
+                food_ratio = pop_check['current_food'] / max(pop_check['food_cost'], 1)
+                if food_ratio > 2:
+                    score += 0.3  # Bonus for having plenty of food
+                score += 0.2  # Base bonus for viable population increase
+            else:
+                score -= 0.5  # Penalty for impossible action
+
+        elif action_type == 'asignar_trabajador':
+            tech_name = action.parameters.get('tech_name', '')
+            if tech_name in capabilities['worker_assignments']:
+                worker_check = capabilities['worker_assignments'][tech_name]
+                if worker_check['can_assign']:
+                    # Bonus for production buildings
+                    if 'Farm' in tech_name or 'Mine' in tech_name:
+                        score += 0.25
+                    score += 0.15  # Base bonus for viable worker assignment
+                else:
+                    score -= 0.8  # Heavy penalty for impossible assignment
+
+        elif action_type == 'research_technology':
+            card_name = action.parameters.get('card_name', '')
+            if card_name in capabilities['research_possibilities']:
+                research_check = capabilities['research_possibilities'][card_name]
+                if research_check['can_research']:
+                    # Bonus based on science efficiency
+                    if research_check['current_science'] > research_check.get('science_cost', 1) * 2:
+                        score += 0.2  # Bonus for having plenty of science
+                    score += 0.15  # Base bonus for viable research
+                else:
+                    score -= 0.7  # Penalty for impossible research
+
+        elif action_type == 'construir_edificio':
+            card_name = action.parameters.get('card_name', '')
+            if card_name in capabilities['building_possibilities']:
+                build_check = capabilities['building_possibilities'][card_name]
+                if build_check['can_build']:
+                    score += 0.2  # Bonus for viable building construction
+                else:
+                    score -= 0.6  # Penalty for impossible construction
+
+        return score

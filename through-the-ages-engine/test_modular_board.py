@@ -76,7 +76,7 @@ def test_modular_player_board():
 
     food_cost = player_board.get_population_cost()
     if player_board.resources['food'] >= food_cost:
-        if player_board.increase_population(food_cost):
+        if player_board.can_increase_population():
             player_board.spend_resources({'food': food_cost})
             new_workers = player_board.worker_manager.get_available_workers()
             print(f"   After population increase: {new_workers} workers (+{new_workers - initial_workers})")

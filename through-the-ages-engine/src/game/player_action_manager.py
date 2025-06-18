@@ -252,7 +252,7 @@ class PlayerActionManager:
         resources = resource_manager.get_resources()
 
         # Action: Increase Population (if player has food)
-        if resources['food'] >= worker_manager.get_population_cost() and worker_manager.can_increase_population():
+        if resources['food'] >= worker_manager.get_population_cost() and worker_manager.has_available_yellow_tokens():
             available_actions.append({
                 'type': 'aumentar_población',
                 'cost': {'civil_actions': 1, 'military_actions': 0},

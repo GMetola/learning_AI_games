@@ -29,12 +29,6 @@
     "happiness_requirement": 1
   },
   "player_initial_state": {
-    "indicators": {
-      "science": 1,
-      "culture": 0,
-      "strength": 1,
-      "happiness": 0
-    },
     "points": {
       "science": 0,
       "culture": 0
@@ -43,12 +37,6 @@
     "military_actions": 0,
     "government": "Despotismo",
     "urban_building_limit": 2
-  },
-  "initial_production": {
-    "Agriculture": {"food": 1},
-    "Bronze": {"resource": 1},
-    "Filosofía": {"science": 1},
-    "Religión": {"culture": 1, "happiness": 1}
   },
   "special_conditions": {
     "revolt": {

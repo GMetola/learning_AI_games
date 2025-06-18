@@ -42,7 +42,8 @@ class ActionValidator:
         # VALIDACIÓN GENERAL: Turno del jugador
         current_player_index = self.game_state.current_turn
         if player_id - 1 != current_player_index:
-            return False, "No es el turno de este jugador"        # VALIDACIÓN ACCIONES CIVILES Y MILITARES
+            return False, "No es el turno de este jugador"
+        # VALIDACIÓN ACCIONES CIVILES Y MILITARES
         if action.cost.get('civil_actions', 0) > 0:
             # Use the modular action manager to check civil actions
             civil_actions_needed = action.cost.get('civil_actions', 0)
@@ -81,9 +82,7 @@ class ActionValidator:
             return False, "Posición de carta inválida"
 
         if card_position >= len(self.game_state.board.visible_civil_cards):
-            return False, "Posición de carta fuera de rango"
-
-        # Verificar si la carta existe en esa posición
+            return False, "Posición de carta fuera de rango"        # Verificar si la carta existe en esa posición
         if not self.game_state.board.visible_civil_cards[card_position]:
             return False, "No hay carta en esa posición"
 
@@ -91,8 +90,15 @@ class ActionValidator:
 
     def _validate_increase_population(self, player_board, action: GameAction) -> tuple:
         """Valida aumento de población"""
-        if not player_board.can_increase_population():
-            return False, "No se puede aumentar población: recursos insuficientes o sin fichas disponibles"
+        # Check if player has available yellow tokens
+        if not player_board.worker_manager.has_available_yellow_tokens():
+            return False, "No hay fichas amarillas disponibles para aumentar población"
+
+        # Check if player has enough food
+        food_cost = player_board.get_population_cost()
+        current_food = player_board.resource_manager.get_resources().get('food', 0)
+        if current_food < food_cost:
+            return False, f"Comida insuficiente para aumentar población: necesitas {food_cost}, tienes {current_food}"
 
         return True, ""
 
@@ -101,7 +107,9 @@ class ActionValidator:
         card_name = action.parameters.get('card_name')
 
         if not card_name:
-            return False, "Nombre de carta requerido para construir"        # Verificar si el jugador tiene la carta en mano (para construir)
+            return False, "Nombre de carta requerido para construir"
+
+        # Verificar si el jugador tiene la carta en mano (para construir)
         if not player_board.card_manager.has_card_in_hand(card_name):
             return False, f"Jugador no tiene la carta en mano: {card_name}"
 
@@ -114,19 +122,20 @@ class ActionValidator:
         if not tech_name:
             return False, "Nombre de tecnología requerido"
 
-        if player_board.yellow_reserves['available_workers'] <= 0:
+        # Check if player has available workers
+        if player_board.worker_manager.get_available_workers() <= 0:
             return False, "No hay trabajadores disponibles"
 
-        if not player_board.has_technology(tech_name):
-            return False, f"Tecnología no disponible: {tech_name}"
-
-        # Check if player has enough materials to assign worker
+        # Check if player has the technology (developed/built, not just in hand)
+        if not player_board.card_manager.has_technology(tech_name):
+            return False, f"Tecnología no disponible en el tablero: {tech_name}"        # Check if player has enough materials to assign worker
         # Only production buildings and some urban buildings need material cost for workers
         building = player_board.card_manager.get_building_by_name(tech_name)
         if building and hasattr(building, 'build_cost'):
             material_cost = building.build_cost
-            if player_board.resources['material'] < material_cost:
-                return False, f"Materiales insuficientes para asignar trabajador a {tech_name}: necesitas {material_cost}, tienes {player_board.resources['material']}"
+            current_materials = player_board.resource_manager.get_resources().get('material', 0)
+            if current_materials < material_cost:
+                return False, f"Materiales insuficientes para asignar trabajador a {tech_name}: necesitas {material_cost}, tienes {current_materials}"
 
         return True, ""
 
@@ -138,10 +147,16 @@ class ActionValidator:
         if not card_name:
             return False, "Nombre de carta requerido para investigar"
 
-        if player_board.resources['science'] < science_cost:
-            return False, f"Ciencia insuficiente: necesitas {science_cost}, tienes {player_board.resources['science']}"        # Verificar si ya tiene esta tecnología (desarrollada o en mano)
-        if player_board.card_manager.has_card_anywhere(card_name):
-            return False, f"Ya posee la tecnología: {card_name}"
+        # Check if player has the card in hand to research it
+        if not player_board.card_manager.has_card_in_hand(card_name):
+            return False, f"Carta no disponible en mano para investigar: {card_name}"        # Check if player has enough science to research the technology
+        current_science = player_board.resource_manager.get_resources().get('science', 0)
+        if current_science < science_cost:
+            return False, f"Ciencia insuficiente: necesitas {science_cost}, tienes {current_science}"
+
+        # Verificar si ya tiene esta tecnología desarrollada en el tablero
+        if player_board.card_manager.has_technology(card_name):
+            return False, f"Ya tiene la tecnología desarrollada en el tablero: {card_name}"
 
         return True, ""
 
@@ -330,12 +345,25 @@ class ActionExecutor:
     def _execute_increase_population(self, action: GameAction) -> Dict[str, Any]:
         """Ejecuta aumento de población"""
         player = self.game_state.players[action.player_id - 1]
-        cost = player.board.get_population_cost()
+        cost = player.board.get_population_cost()        # Deduct food cost from resources
+        current_food = player.board.resource_manager.get_resources().get('food', 0)
+        if current_food >= cost:
+            success = player.board.resource_manager.spend_resources({'food': cost})
 
-        success = player.board.increase_population(cost)
+            if success:
+                # Increase population using worker manager
+                population_success = player.board.increase_population()
 
-        if success:
-            logging.info(f"Jugador {action.player_id} aumentó población por {cost} comida")
+                if population_success:
+                    logging.info(f"Jugador {action.player_id} aumentó población por {cost} comida")
+                else:
+                    logging.error(f"Jugador {action.player_id} falló al aumentar población")
+                    success = False
+            else:
+                logging.error(f"Jugador {action.player_id} falló al gastar comida")
+        else:
+            success = False
+            logging.error(f"Jugador {action.player_id} no tiene suficiente comida: necesita {cost}, tiene {current_food}")
 
         return {
             'success': success,
@@ -346,19 +374,46 @@ class ActionExecutor:
     def _execute_assign_worker(self, action: GameAction) -> Dict[str, Any]:
         """Ejecuta asignación de trabajador"""
         player = self.game_state.players[action.player_id - 1]
-        tech_name = action.parameters['tech_name']        # Get the Card object from the card manager
+        tech_name = action.parameters['tech_name']
+
+        # Get the Card object from the card manager
         building = player.board.card_manager.get_building_by_name(tech_name)
         if building:
-            success = player.board.assign_worker_to_building(building)
+            # Check if materials need to be deducted
+            material_cost = 0
+            if hasattr(building, 'build_cost'):
+                material_cost = building.build_cost                # Deduct material cost if needed
+                if material_cost > 0:
+                    current_materials = player.board.resource_manager.get_resources().get('material', 0)
+                    if current_materials >= material_cost:
+                        spend_success = player.board.resource_manager.spend_resources({'material': material_cost})
+                        if not spend_success:
+                            return {
+                                'success': False,
+                                'error': f"Falló al gastar materiales: {material_cost}",
+                                'player_id': action.player_id
+                            }
+                    else:
+                        return {
+                            'success': False,
+                            'error': f"Materiales insuficientes: necesitas {material_cost}, tienes {current_materials}",
+                            'player_id': action.player_id
+                        }
+
+            # Assign worker using worker manager
+            success = player.board.worker_manager.assign_worker_to_technology(tech_name, material_cost)
         else:
             success = False
 
         if success:
-            logging.info(f"Jugador {action.player_id} asignó trabajador a {tech_name}")
+            logging.info(f"Jugador {action.player_id} asignó trabajador a {tech_name} (coste: {material_cost} materiales)")
+        else:
+            logging.error(f"Jugador {action.player_id} falló al asignar trabajador a {tech_name}")
 
         return {
             'success': success,
             'tech_name': tech_name,
+            'material_cost': material_cost,
             'player_id': action.player_id
         }
 
@@ -428,28 +483,63 @@ class ActionExecutor:
         card_name = action.parameters['card_name']
         science_cost = action.parameters.get('science_cost', 0)
 
-        # Pagar coste de ciencia
-        player.board.resources['science'] -= science_cost        # Agregar nueva tecnología to hand for now
-        # In the future, this should create the appropriate card object and add it to hand
-        # For now, we'll add it as a basic card to hand
-        try:
-            from .card_loader import CardLoader
-            loader = CardLoader()
-            card = loader.get_card_by_name(card_name)
-            if card:
-                player.board.card_manager.add_card_to_hand(card)
+        # Deduct science cost from resources
+        current_science = player.board.resource_manager.get_resources().get('science', 0)
+        if current_science >= science_cost:
+            spend_success = player.board.resource_manager.spend_resources({'science': science_cost})
+
+            if spend_success:
+                # Move card from hand to appropriate collection (developed/built)
+                hand_cards = player.board.card_manager.get_hand_cards()
+                research_card = None
+
+                for card in hand_cards:
+                    if card.name == card_name:
+                        research_card = card
+                        break
+
+                if research_card:
+                    # Remove from hand
+                    player.board.card_manager.remove_card_from_hand(research_card)
+
+                    # Add to appropriate building collection (researched technologies become developed)
+                    try:
+                        if hasattr(research_card, 'card_type'):
+                            if research_card.card_type in ['Farm', 'Mine']:
+                                player.board.card_manager.add_production_building(research_card, built=True)
+                            elif research_card.card_type in ['Temple', 'Library']:
+                                player.board.card_manager.add_urban_building(research_card, built=True)
+                            else:
+                                # For other technology types, add back to hand for now
+                                player.board.card_manager.add_card_to_hand(research_card)
+
+                        # REGISTRAR COMO TECNOLOGÍA DESARROLLADA
+                        player.board.add_technology_researched(card_name)
+
+                        logging.info(f"Jugador {action.player_id} investigó y desarrolló tecnología: {card_name} (coste: {science_cost} ciencia)")
+                        success = True
+
+                    except ValueError as e:
+                        # If failed to add, put back in hand and refund science
+                        player.board.card_manager.add_card_to_hand(research_card)
+                        player.board.resource_manager.add_resources({'science': science_cost})
+                        logging.error(f"Failed to research {card_name}: {e}")
+                        success = False
+                else:
+                    # Card not found in hand, refund science
+                    player.board.resource_manager.add_resources({'science': science_cost})
+                    logging.error(f"Card {card_name} not found in hand for research")
+                    success = False
             else:
-                logging.warning(f"Card {card_name} not found in loader, research action may have issues")
-        except Exception as e:
-            logging.warning(f"Failed to load researched card {card_name}: {e}")
-
-        # REGISTRAR MEJORA DEL TURNO
-        player.board.add_technology_researched(card_name)
-
-        logging.info(f"Jugador {action.player_id} investigó tecnología: {card_name}")
+                # Failed to spend science
+                success = False
+                logging.error(f"Jugador {action.player_id} falló al gastar ciencia")
+        else:
+            success = False
+            logging.error(f"Jugador {action.player_id} no tiene suficiente ciencia: necesita {science_cost}, tiene {current_science}")
 
         return {
-            'success': True,
+            'success': success,
             'card_name': card_name,
             'science_cost': science_cost,
             'player_id': action.player_id

@@ -13,9 +13,9 @@ def set_max_happiness(player_board):
     # CONFIGURACIÓN FELICIDAD MÁXIMA
     # Establece felicidad suficiente para evitar revueltas
     max_workers = player_board.yellow_reserves['total_tokens']
-    player_board.indicators['happiness'] = max_workers + 5  # Margen extra de seguridad
+    player_board.resources["happy"] = max_workers + 5  # Margen extra de seguridad
 
-    print(f"🔧 TEST UTILITY: Felicidad establecida a {player_board.indicators['happiness']} para evitar revueltas")
+    print(f"🔧 TEST UTILITY: Felicidad establecida a {player_board.resources['happy']} para evitar revueltas")
 
 def prevent_revolt_for_testing(player_board):
     """Previene revueltas durante las pruebas ajustando felicidad
@@ -24,14 +24,14 @@ def prevent_revolt_for_testing(player_board):
         player_board (PlayerBoard): Tablero del jugador
     """
     available_workers = player_board.yellow_reserves['available_workers']
-    current_happiness = player_board.indicators['happiness']
+    current_happiness = player_board.resources["happy"]
 
     if available_workers > current_happiness:
         # AJUSTE TEMPORAL
         # Aumenta felicidad para superar trabajadores disponibles
-        player_board.indicators['happiness'] = available_workers + 2
-        print(f"🔧 TEST UTILITY: Felicidad ajustada de {current_happiness} a {player_board.indicators['happiness']}")
-        print(f"   Trabajadores disponibles: {available_workers}, Nueva felicidad: {player_board.indicators['happiness']}")
+        player_board.resources["happy"] = available_workers + 2
+        print(f"🔧 TEST UTILITY: Felicidad ajustada de {current_happiness} a {player_board.resources['happy']}")
+        print(f"   Trabajadores disponibles: {available_workers}, Nueva felicidad: {player_board.resources['happy']}")
     else:
         print(f"✓ No se necesita ajuste: Trabajadores {available_workers} <= Felicidad {current_happiness}")
 
@@ -41,7 +41,7 @@ def reset_happiness_to_default(player_board):
     Args:
         player_board (PlayerBoard): Tablero del jugador
     """
-    player_board.indicators['happiness'] = 1  # Valor inicial del juego
+    player_board.resources["happy"] = 1  # Valor inicial del juego
     print(f"🔄 TEST UTILITY: Felicidad restablecida a valor por defecto: 1")
 
 def setup_production_test_state(player_board):
@@ -66,7 +66,7 @@ def setup_production_test_state(player_board):
     prevent_revolt_for_testing(player_board)
 
     print(f"   Estado final: {player_board.yellow_reserves['available_workers']} trabajadores disponibles")
-    print(f"   Felicidad: {player_board.indicators['happiness']}")
+    print(f"   Felicidad: {player_board.resources['happy']}")
     print(f"   Asignaciones: {player_board.yellow_reserves['technology_workers']}")
 
 def verify_no_revolt(player_board):
@@ -80,7 +80,7 @@ def verify_no_revolt(player_board):
     """
     revolt_condition = player_board.check_revolt_condition()
     available_workers = player_board.yellow_reserves['available_workers']
-    happiness = player_board.indicators['happiness']
+    happiness = player_board.resources["happy"]
 
     if revolt_condition:
         print(f"⚠️  REVUELTA DETECTADA: {available_workers} trabajadores > {happiness} felicidad")

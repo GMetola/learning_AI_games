@@ -97,7 +97,7 @@ class TestGameActions(unittest.TestCase):
         is_valid, error = self.validator.validate_action(1, action)
         self.assertTrue(is_valid, f"Population increase should be valid: {error}")        # Execute the action
         initial_workers = player_board.yellow_reserves['available_workers']
-        initial_has_tokens = player_board._has_available_yellow_tokens()
+        initial_has_tokens = player_board.worker_manager.has_available_yellow_tokens()
 
         mock_bot = self.create_mock_bot()
         result = self.executor.execute_action(action, mock_bot)

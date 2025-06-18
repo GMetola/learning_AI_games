@@ -54,17 +54,14 @@ class PlayerWorkerManager:
         """Get workers assigned to technologies"""
         return self.yellow_reserves['technology_workers'].copy()
 
-    def increase_population(self, food_cost: int) -> bool:
+    def move_yellow_token_to_unemployment(self) -> bool:
         """Increase population by taking a worker from a yellow group
-
-        Args:
-            food_cost (int): Food cost for the population increase
 
         Returns:
             bool: True if population was increased successfully
         """
         # Find the next available yellow token group
-        if not self._has_available_yellow_tokens():
+        if not self.has_available_yellow_tokens():
             logging.warning(f"Player {self.player_id}: No yellow tokens available for population increase")
             return False
 
@@ -85,14 +82,6 @@ class PlayerWorkerManager:
         # In the current implementation, population costs 2 food
         # In the full game, this would vary based on game state
         return 2
-
-    def can_increase_population(self) -> bool:
-        """Check if population can be increased
-
-        Returns:
-            bool: True if more workers can be gained
-        """
-        return self._has_available_yellow_tokens()
 
     def assign_worker_to_technology(self, tech_name: str, material_cost: int = 0) -> bool:
         """Assign a worker to a technology/building
@@ -186,22 +175,22 @@ class PlayerWorkerManager:
             'technology_assignments': self.yellow_reserves['technology_workers'].copy(),
             'total_population': self.get_total_population(),
             'food_consumption': self.get_food_consumption(),
-            'can_increase_population': self.can_increase_population(),
+            'has_available_yellow_tokens': self.has_available_yellow_tokens(),
             'population_cost': self.get_population_cost()
         }
 
-    # === PRIVATE HELPER METHODS ===
-
-    def _has_available_yellow_tokens(self) -> bool:
+    def has_available_yellow_tokens(self) -> bool:
         """Check if there are yellow tokens available to take
 
         Returns:
             bool: True if tokens are available
         """
         for group in self.yellow_reserves['groups']:
-            if not group['occupied'] and group['tokens'] > 0:
+            if group['occupied'] and group['tokens'] > 0:
                 return True
         return False
+
+    # === PRIVATE HELPER METHODS ===
 
     def _take_yellow_token_from_group(self) -> bool:
         """Take a yellow token from an unoccupied group
@@ -210,7 +199,7 @@ class PlayerWorkerManager:
             bool: True if token was taken successfully
         """
         for group in self.yellow_reserves['groups']:
-            if not group['occupied'] and group['tokens'] > 0:
+            if group['occupied'] and group['tokens'] > 0:
                 group['tokens'] -= 1
                 if group['tokens'] == 0:
                     group['occupied'] = True
