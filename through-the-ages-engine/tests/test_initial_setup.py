@@ -39,12 +39,18 @@ def test_initial_setup():
     # VERIFICACIÓN RECURSOS
     print(f"\nRECURSOS:")
     for resource, amount in player_board.resources.items():
-        print(f"  {resource}: {amount}")
-
-    # VERIFICACIÓN TECNOLOGÍAS
+        print(f"  {resource}: {amount}")    # VERIFICACIÓN TECNOLOGÍAS
     print(f"\nTECNOLOGÍAS:")
-    for tech in player_board.current_technologies:
-        print(f"  {tech}")    # VERIFICACIONES
+    # Show all buildings from the new card manager
+    all_buildings = player_board.card_manager.get_all_buildings()
+    for building in all_buildings:
+        print(f"  {building.name}")
+
+    # Also show government and leader if any
+    if player_board.card_manager.get_government():
+        print(f"  {player_board.card_manager.get_government().name} (Government)")
+    if player_board.card_manager.get_leader():
+        print(f"  {player_board.card_manager.get_leader().name} (Leader)")# VERIFICACIONES
     assert total_tokens == 24, f"Total de fichas amarillas debe ser 24, pero es {total_tokens}"
     assert total_assigned == 5, f"Trabajadores asignados deben ser 5, pero son {total_assigned}"
     assert total_available == 1, f"Trabajadores disponibles deben ser 1, pero son {total_available}"

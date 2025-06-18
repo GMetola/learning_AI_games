@@ -148,10 +148,10 @@ building.remove_worker("worker_1")
 
 ## Integration with Game System
 
-Urban buildings are tracked in multiple places:
+Urban buildings are tracked in the new modular system:
 
-1. **player_board.urban_buildings**: List of UrbanBuilding objects
-2. **player_board.current_technologies**: Legacy compatibility dict
+1. **player_board.card_manager.urban_buildings**: List of UrbanBuilding objects
+2. **player_board.card_manager.has_technology(name)**: Check if player has a specific card/technology
 3. **player_board.yellow_reserves['technology_workers']**: Worker assignments
 
 ## Example: Complete Urban Building Setup

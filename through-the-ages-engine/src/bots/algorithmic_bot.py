@@ -132,6 +132,20 @@ class AlgorithmicBot(BaseBot):
 
     def _evaluate_game_action(self, action, game_state) -> float:
         """Evalúa una GameAction específica"""
+        # Get current era for era-based strategy
+        current_era = self._get_current_era(game_state)
+
+        """
+        Era-based Strategy Implementation:
+        - Era A: Get a good leader and a good wonder
+        - Era I: Focus on PRODUCTION. Balanced production in order: science, material, food.
+                 Bonus for extra civil and military actions
+        - Era II: BALANCING what couldn't be balanced in era I.
+                  Special attention to population growth, happiness and food production.
+                  Then production of science, material. Then civil and military actions
+        - Era III: Focus on culture HARD, get good military cards, get good wonders.
+        - All eras: Try to be first or second in military strength.
+        """
         action_type = action.action_type
         score = 0.0
 
@@ -150,19 +164,99 @@ class AlgorithmicBot(BaseBot):
             if not player:
                 return 0.0
 
-        # EVALUACIÓN POR TIPO DE ACCIÓN
+        # Apply era-based modifiers to base scoring
+        era_modifier = self._get_era_strategy_modifier(action_type, current_era, player_board)
+
+        # EVALUACIÓN POR TIPO DE ACCIÓN (with era considerations)
         if action_type == 'aumentar_población':
-            score += self._evaluate_population_action(player_board)
+            score += self._evaluate_population_action(player_board) * era_modifier
         elif action_type == 'tomar_carta':
-            score += self._evaluate_take_card_action(action, game_state)
+            score += self._evaluate_take_card_action(action, game_state) * era_modifier
         elif action_type == 'asignar_trabajador':
-            score += self._evaluate_assign_worker_action(action, player_board)
+            score += self._evaluate_assign_worker_action(action, player_board) * era_modifier
         elif action_type == 'construir_edificio':
-            score += self._evaluate_build_action(action, player_board)
+            score += self._evaluate_build_action(action, player_board) * era_modifier
         elif action_type == 'terminar_turno':
-            score += self._evaluate_end_turn_action(player_board)
+            score += self._evaluate_end_turn_action(player_board) * era_modifier
 
         return score
+
+    def _get_current_era(self, game_state) -> str:
+        """Get current game era/age
+
+        Args:
+            game_state: Game state object
+
+        Returns:
+            str: Current era ('A', 'I', 'II', 'III')
+        """
+        if hasattr(game_state, 'board') and hasattr(game_state.board, 'current_age'):
+            return game_state.board.current_age
+        logging.warning("Game state does not have current age, defaulting to 'A'")
+        return 'A'
+
+    def _get_era_strategy_modifier(self, action_type: str, era: str, player_board) -> float:
+        """Get era-based strategy modifier for action scoring
+
+        Args:
+            action_type (str): Type of action
+            era (str): Current era
+            player_board: Player's board
+
+        Returns:
+            float: Modifier multiplier (typically 0.5 to 2.0)
+        """
+        base_modifier = 1.0
+
+        if era == 'A':
+            # Era A: Focus on leaders and wonders
+            if action_type == 'tomar_carta':
+                # Higher priority for leaders and wonders
+                base_modifier = 1.3
+            elif action_type == 'construir_edificio':
+                # Basic buildings are important
+                base_modifier = 1.2
+
+        elif era == 'I':
+            # Era I: Focus on PRODUCTION (science > material > food)
+            if action_type == 'asignar_trabajador':
+                # High priority for worker assignments to production
+                base_modifier = 1.5
+            elif action_type == 'construir_edificio':
+                # Production buildings are crucial
+                base_modifier = 1.4
+            elif action_type == 'aumentar_población':
+                # Population growth is important
+                base_modifier = 1.3
+
+        elif era == 'II':
+            # Era II: BALANCING - population growth, happiness, food production
+            if action_type == 'aumentar_población':
+                # Very high priority for population growth
+                base_modifier = 1.6
+            elif action_type == 'construir_edificio':
+                # Focus on happiness and food buildings
+                base_modifier = 1.3
+            elif action_type == 'asignar_trabajador':
+                # Balance production
+                base_modifier = 1.2
+
+        elif era == 'III':
+            # Era III: Focus on culture HARD, military cards, wonders
+            if action_type == 'tomar_carta':
+                # High priority for culture and military cards
+                base_modifier = 1.4
+            elif action_type == 'construir_edificio':
+                # Wonders and culture buildings
+                base_modifier = 1.3
+
+        # Military strength is always important (all eras)
+        if action_type in ['tomar_carta', 'construir_edificio']:
+            # Boost military-related actions slightly
+            # GABRIEL: revisa esto
+            base_modifier *= 1.1
+
+        return base_modifier
 
     def _evaluate_population_action(self, player_board) -> float:
         """Evalúa acción de aumentar población"""
@@ -207,9 +301,9 @@ class AlgorithmicBot(BaseBot):
         """Evalúa asignación de trabajador"""
         tech_name = action.parameters.get('tech_name', '')
 
-        # Get current technology info
-        if tech_name in player_board.current_technologies:
-            tech_info = player_board.current_technologies[tech_name]
+        # Get building info
+        if player_board.has_technology(tech_name):
+            building = player_board.card_manager.get_building_by_name(tech_name)
 
             # Check current worker assignment
             current_workers = player_board.yellow_reserves['technology_workers'].get(tech_name, 0)
@@ -292,7 +386,13 @@ class AlgorithmicBot(BaseBot):
             score += available_workers * 5
 
             # EVALUACIÓN DE TECNOLOGÍAS
-            tech_count = len(player_board.current_technologies)
+            tech_count = len(player_board.card_manager.get_all_buildings())
+            # Also count other card types
+            tech_count += len(player_board.card_manager.get_wonders())
+            if player_board.card_manager.get_leader():
+                tech_count += 1
+            if player_board.card_manager.get_government():
+                tech_count += 1
             score += tech_count * 10
 
             # Normalizar a rango [-1, 1]

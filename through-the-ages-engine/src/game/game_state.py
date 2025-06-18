@@ -173,16 +173,28 @@ class GameState:
         player.board.resources['science'] -= science_cost
         player.board.actions['civil'] -= 1
 
-        # Agrega carta a tecnologías del jugador
+        # Agrega carta a tecnologías del jugador using the new card manager
         if card:
-            player.board.current_technologies[card.name] = {
-                'card_object': card,  # Store the actual Card object
-                'type': card.get_type(),
-                'category': card.category,
-                'age': card.age,
-                'production': card.production,
-                'workers': 0
-            }
+            try:
+                if hasattr(card, 'card_type'):
+                    if card.card_type in ['Farm', 'Mine']:
+                        player.board.card_manager.add_production_building(card)
+                    elif card.card_type in ['Temple', 'Library']:
+                        player.board.card_manager.add_urban_building(card)
+                    elif card.card_type == 'Government':
+                        player.board.card_manager.set_government(card)
+                    elif card.card_type == 'Leader':
+                        player.board.card_manager.set_leader(card)
+                    else:
+                        # Add to hand for other types
+                        player.board.card_manager.add_card_to_hand(card)
+                else:
+                    # Fallback to hand
+                    player.board.card_manager.add_card_to_hand(card)
+            except ValueError as e:
+                logging.warning(f"Failed to add card {card.name} to player {player.player_id}: {e}")
+                # Fallback to hand
+                player.board.card_manager.add_card_to_hand(card)
 
             # Remueve carta del tablero
             self.board.visible_civil_cards[card_position] = None
@@ -213,7 +225,7 @@ class GameState:
         """Ejecuta asignación de trabajador a tecnología"""
         tech_name = action.get('technology', '')
 
-        if tech_name not in player.board.current_technologies:
+        if not player.board.has_technology(tech_name):
             return {"success": False, "error": "Tecnología no disponible"}
 
         if player.board.tokens['yellow'] <= sum(player.board.worker_assignments.values()):

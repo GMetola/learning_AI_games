@@ -43,9 +43,6 @@ class PlayerCardManager:
         self.leader: Optional[Leader] = None
         self.government: Optional[Government] = None
 
-        # Legacy compatibility - maps card names to info dicts
-        self.current_technologies: Dict[str, Dict] = {}
-
         # Load initial setup
         self._load_initial_cards()
 
@@ -63,22 +60,20 @@ class PlayerCardManager:
                 elif isinstance(card, Government):
                     self.set_government(card)
                 else:
-                    # Add to legacy tracking for other types
-                    self.current_technologies[card.name] = {
-                        'card_object': card,
-                        'production': getattr(card, 'production', {})
-                    }
+                    # Handle other types in the future if needed
+                    logging.info(f"Player {self.player_id}: Skipping unknown card type '{type(card).__name__}' for '{card.name}'")
 
         except Exception as e:
             logging.warning(f"Failed to load initial cards for player {self.player_id}: {e}")
 
     # === PRODUCTION BUILDINGS ===
 
-    def add_production_building(self, card_or_name: Union[ProductionBuilding, str]):
+    def add_production_building(self, card_or_name: Union[ProductionBuilding, str], built: bool = True):
         """Add a production building to the player's board
 
         Args:
             card_or_name: ProductionBuilding card object or card name
+            built: Whether the building is already built (default True for compatibility)
 
         Raises:
             ValueError: If card is invalid or already exists
@@ -90,9 +85,8 @@ class PlayerCardManager:
             raise ValueError(f"Production building '{card.name}' already exists on this board")
 
         self.production_buildings.append(card)
-        self._add_to_legacy_tracking(card)
 
-        logging.info(f"Player {self.player_id}: Added production building '{card.name}'")
+        logging.info(f"Player {self.player_id}: Added production building '{card.name}' (built: {built})")
 
     def remove_production_building(self, card_name: str) -> bool:
         """Remove a production building by name
@@ -106,7 +100,6 @@ class PlayerCardManager:
         for i, building in enumerate(self.production_buildings):
             if building.name == card_name:
                 removed = self.production_buildings.pop(i)
-                self._remove_from_legacy_tracking(card_name)
                 logging.info(f"Player {self.player_id}: Removed production building '{card_name}'")
                 return True
         return False
@@ -117,11 +110,12 @@ class PlayerCardManager:
 
     # === URBAN BUILDINGS ===
 
-    def add_urban_building(self, card_or_name: Union[UrbanBuilding, str]):
+    def add_urban_building(self, card_or_name: Union[UrbanBuilding, str], built: bool = True):
         """Add an urban building to the player's board
 
         Args:
             card_or_name: UrbanBuilding card object or card name
+            built: Whether the building is already built (default True for compatibility)
 
         Raises:
             ValueError: If card is invalid or already exists
@@ -133,9 +127,8 @@ class PlayerCardManager:
             raise ValueError(f"Urban building '{card.name}' already exists on this board")
 
         self.urban_buildings.append(card)
-        self._add_to_legacy_tracking(card)
 
-        logging.info(f"Player {self.player_id}: Added urban building '{card.name}'")
+        logging.info(f"Player {self.player_id}: Added urban building '{card.name}' (built: {built})")
 
     def remove_urban_building(self, card_name: str) -> bool:
         """Remove an urban building by name
@@ -149,7 +142,6 @@ class PlayerCardManager:
         for i, building in enumerate(self.urban_buildings):
             if building.name == card_name:
                 removed = self.urban_buildings.pop(i)
-                self._remove_from_legacy_tracking(card_name)
                 logging.info(f"Player {self.player_id}: Removed urban building '{card_name}'")
                 return True
         return False
@@ -176,7 +168,6 @@ class PlayerCardManager:
             raise ValueError(f"Wonder '{card.name}' already exists on this board")
 
         self.wonders.append(card)
-        self._add_to_legacy_tracking(card)
 
         logging.info(f"Player {self.player_id}: Added wonder '{card.name}'")
 
@@ -192,7 +183,6 @@ class PlayerCardManager:
         for i, wonder in enumerate(self.wonders):
             if wonder.name == card_name:
                 removed = self.wonders.pop(i)
-                self._remove_from_legacy_tracking(card_name)
                 logging.info(f"Player {self.player_id}: Removed wonder '{card_name}'")
                 return True
         return False
@@ -216,18 +206,14 @@ class PlayerCardManager:
             if self.leader:
                 old_name = self.leader.name
                 self.leader = None
-                self._remove_from_legacy_tracking(old_name)
-                logging.info(f"Player {self.player_id}: Removed leader")
+                logging.info(f"Player {self.player_id}: Removed leader '{old_name}'")
             return
 
-        card = self._resolve_card(card_or_name, Leader, "Leader")
-
-        # Remove old leader if exists
+        card = self._resolve_card(card_or_name, Leader, "Leader")        # Remove old leader if exists
         if self.leader:
-            self._remove_from_legacy_tracking(self.leader.name)
+            logging.info(f"Player {self.player_id}: Replacing leader '{self.leader.name}' with '{card.name}'")
 
         self.leader = card
-        self._add_to_legacy_tracking(card)
 
         logging.info(f"Player {self.player_id}: Set leader to '{card.name}'")
 
@@ -246,14 +232,11 @@ class PlayerCardManager:
         Raises:
             ValueError: If card is invalid
         """
-        card = self._resolve_card(card_or_name, Government, "Government")
-
-        # Remove old government if exists
+        card = self._resolve_card(card_or_name, Government, "Government")        # Remove old government if exists
         if self.government:
-            self._remove_from_legacy_tracking(self.government.name)
+            logging.info(f"Player {self.player_id}: Replacing government '{self.government.name}' with '{card.name}'")
 
         self.government = card
-        self._add_to_legacy_tracking(card)
 
         logging.info(f"Player {self.player_id}: Set government to '{card.name}'")
 
@@ -331,15 +314,59 @@ class PlayerCardManager:
         return None
 
     def has_technology(self, tech_name: str) -> bool:
-        """Check if player has a specific technology
+        """Check if player has a developed technology (not in hand)
+
+        This method only checks permanently developed technologies that provide benefits.
+        Cards in hand are NOT considered "technologies" for game purposes.
 
         Args:
-            tech_name (str): Technology name
+            tech_name (str): Name of the technology to check
 
         Returns:
-            bool: True if technology is available
+            bool: True if technology is developed and active
         """
-        return tech_name in self.current_technologies
+        # Check buildings (production + urban) - these are developed
+        if self.get_building_by_name(tech_name):
+            return True
+
+        # Check wonders - these are developed
+        if any(wonder.name == tech_name for wonder in self.wonders):
+            return True
+
+        # Check leader - this is active
+        if self.leader and self.leader.name == tech_name:
+            return True
+
+        # Check government - this is active
+        if self.government and self.government.name == tech_name:
+            return True
+
+        # Do NOT check hand cards - these are not active technologies
+        return False
+
+    def has_card_in_hand(self, card_name: str) -> bool:
+        """Check if player has a specific card in hand (researched but not developed)
+
+        Args:
+            card_name (str): Name of the card to check
+
+        Returns:
+            bool: True if card is in hand
+        """
+        return any(card.name == card_name for card in self.hand_cards)
+
+    def has_card_anywhere(self, card_name: str) -> bool:
+        """Check if player has a card anywhere (developed OR in hand)
+
+        This is useful for preventing duplicate research.
+
+        Args:
+            card_name (str): Name of the card to check
+
+        Returns:
+            bool: True if card exists anywhere for this player
+        """
+        return self.has_technology(card_name) or self.has_card_in_hand(card_name)
 
     def get_card_count_by_type(self) -> Dict[str, int]:
         """Get count of cards by type"""
@@ -380,15 +407,3 @@ class PlayerCardManager:
             raise ValueError(f"Card '{card.name}' is not a {type_name}")
 
         return card
-
-    def _add_to_legacy_tracking(self, card: Card):
-        """Add card to legacy tracking system"""
-        self.current_technologies[card.name] = {
-            'card_object': card,
-            'production': getattr(card, 'production', {})
-        }
-
-    def _remove_from_legacy_tracking(self, card_name: str):
-        """Remove card from legacy tracking system"""
-        if card_name in self.current_technologies:
-            del self.current_technologies[card_name]

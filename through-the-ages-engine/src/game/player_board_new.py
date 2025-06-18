@@ -67,11 +67,6 @@ class PlayerBoard:
         """Access to government"""
         return self.card_manager.government
 
-    @property
-    def current_technologies(self):
-        """Access to legacy technology tracking"""
-        return self.card_manager.current_technologies
-
     def add_production_building(self, card_or_name):
         """Add production building"""
         return self.card_manager.add_production_building(card_or_name)

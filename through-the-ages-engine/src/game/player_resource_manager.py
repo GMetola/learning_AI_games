@@ -41,7 +41,7 @@ class PlayerResourceManager:
             'groups': [                    # Blue token groups with corruption
                 {'tokens': 6, 'occupied': True, 'corruption': -2},
                 {'tokens': 5, 'occupied': True, 'corruption': -4},
-                {'tokens': 5, 'occupied': False, 'corruption': -6}
+                {'tokens': 5, 'occupied': True, 'corruption': -6}
             ],
             'stored_blue_tokens': 11       # Currently stored blue tokens
         }
@@ -193,7 +193,7 @@ class PlayerResourceManager:
         """
         penalty = 0
         for group in self.blue_reserves['groups']:
-            if group['occupied']:
+            if not group['occupied']:
                 penalty += abs(group['corruption'])  # corruption values are negative
         return penalty
 
@@ -217,7 +217,7 @@ class PlayerResourceManager:
 
         # Pay corruption with resources in priority order
         # Priority: food, materials, science, culture, happy (strength is not lost to corruption)
-        resource_priority = ['food', 'material', 'science', 'culture', 'happy']
+        resource_priority = ['material', 'food', 'science', 'culture', 'happy']
 
         for resource in resource_priority:
             if remaining_corruption <= 0:

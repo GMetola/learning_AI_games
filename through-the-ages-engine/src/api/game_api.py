@@ -1,10 +1,11 @@
 from flask import Flask, request, jsonify
 import logging
 import uuid
+import random
 from datetime import datetime
 from typing import Dict, List
 from ..game.game_state import GameState
-from ..bots.base_bot import BotManager
+from ..bots.base_bot import BotManager, BaseBot
 from ..database.connection import DatabaseConnection
 from ..database.models import GameSession, TrainingData
 
@@ -119,12 +120,15 @@ def make_move():
             # Guarda datos de entrenamiento para bots IA
             player_index = game_info['players'].index(player_id)
             if game_info['bot_types'][player_index] == 'ai':
+                # Calculate reward based on move outcome
+                reward = _calculate_move_reward(result, game_state, player_id)
+
                 training_data = TrainingData(
                     bot_id=f"ai_{player_index}_{session_id[:8]}",
                     game_session_id=session_id,
-                    move_data=action
+                    move_data=action,
+                    reward=reward
                 )
-                # TODO: Calcular recompensa basada en resultado del movimiento
 
             # Avanza al siguiente jugador
             game_state.next_turn()
@@ -285,6 +289,70 @@ def simulate_training_game(session_id: str, players: List[str], bot_types: List[
         "turns_played": 15
     }
 
+def _calculate_move_reward(result: Dict, game_state: GameState, player_id: str) -> float:
+    """Calculate reward for AI training based on move outcome
+
+    Args:
+        result (Dict): Result of the executed action
+        game_state (GameState): Current game state
+        player_id (str): Player who made the move
+
+    Returns:
+        float: Reward value (-1.0 to 1.0)
+    """
+    reward = 0.0
+
+    # Base reward for successful actions
+    if result.get('success', False):
+        reward += 0.1
+    else:
+        reward -= 0.3
+
+    # Find player in game state
+    player = None
+    for p in game_state.players:
+        if p.name == player_id:
+            player = p
+            break
+
+    if not player:
+        return reward
+
+    # Reward based on resource gains
+    if 'player_id' in result:
+        player_board = player.board
+        resources = player_board.resources
+
+        # Reward for having balanced resources
+        total_resources = sum(resources.values())
+        if total_resources > 0:
+            # Bonus for resource diversity
+            non_zero_resources = sum(1 for v in resources.values() if v > 0)
+            diversity_bonus = non_zero_resources / len(resources) * 0.1
+            reward += diversity_bonus
+
+        # Reward for production buildings
+        production_count = len(player_board.production_buildings)
+        reward += production_count * 0.05
+
+        # Reward for population growth
+        available_workers = player_board.yellow_reserves.get('available_workers', 0)
+        if available_workers > 3:
+            reward += 0.1
+
+        # Penalty for corruption
+        corruption = player_board.get_corruption_penalty()
+        reward -= corruption * 0.02
+
+    # Reward for game progression
+    if hasattr(game_state, 'turn_number'):
+        # Later game actions should be more carefully evaluated
+        turn_factor = min(game_state.turn_number / 50.0, 1.0)
+        reward *= (1.0 + turn_factor * 0.5)
+
+    # Clamp reward between -1.0 and 1.0
+    return max(-1.0, min(1.0, reward))
+
 if __name__ == '__main__':
     # Configura logging
     logging.basicConfig(level=logging.INFO)
@@ -294,12 +362,3 @@ if __name__ == '__main__':
         logging.info("Conectado a MongoDB exitosamente")
 
     app.run(debug=True, host='0.0.0.0', port=5000)
-def bot_move():
-    bot_data = request.json
-    bot = BaseBot(bot_data['bot_id'])
-    action = bot.decide_action(game_state)
-    result = game_state.perform_action(bot_data['bot_id'], action)
-    return jsonify(result)
-
-if __name__ == '__main__':
-    app.run(port=5000)

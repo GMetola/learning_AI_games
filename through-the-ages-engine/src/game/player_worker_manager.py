@@ -159,7 +159,7 @@ class PlayerWorkerManager:
         """
         consumption = 0
         for group in self.yellow_reserves['groups']:
-            if group['occupied']:
+            if not group['occupied']:
                 consumption += abs(group['consumo'])  # consumo values are negative
         return consumption
 

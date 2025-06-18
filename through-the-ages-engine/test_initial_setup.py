@@ -45,14 +45,20 @@ def test_player_board_initialization():
     if player_board.active_government:
         print(f"  Civil Actions: {player_board.get_civil_actions_per_turn()}")
         print(f"  Military Actions: {player_board.get_military_actions_per_turn()}")
-        print(f"  Building Limit: {player_board.get_building_limit()}")
+        print(f"  Building Limit: {player_board.get_building_limit()}")    # Check initial technologies using the new card manager
+    all_buildings = player_board.card_manager.get_all_buildings()
+    print(f"\nInitial Technologies ({len(all_buildings)}):")
+    for building in all_buildings:
+        production = getattr(building, 'production', {})
+        print(f"  - {building.name}: {building.__class__.__name__}, Production: {production}")
 
-    # Check initial technologies
-    print(f"\nInitial Technologies ({len(player_board.current_technologies)}):")
-    for name, tech_info in player_board.current_technologies.items():
-        card = tech_info['card_object']
-        production = tech_info['production']
-        print(f"  - {name}: {card.__class__.__name__}, Production: {production}")
+    # Also show government and leader
+    if player_board.card_manager.get_government():
+        gov = player_board.card_manager.get_government()
+        print(f"  - {gov.name}: {gov.__class__.__name__} (Government)")
+    if player_board.card_manager.get_leader():
+        leader = player_board.card_manager.get_leader()
+        print(f"  - {leader.name}: {leader.__class__.__name__} (Leader)")
 
     # Check worker assignments
     print(f"\nWorker Assignments:")

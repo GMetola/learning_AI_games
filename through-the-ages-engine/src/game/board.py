@@ -43,12 +43,6 @@ class GameBoard:
         self.peaceful_version = True   # Versión pacífica del juego
         self.max_visible_civil_cards = 13  # Número máximo de cartas civiles visibles
 
-        # TECNOLOGÍAS INICIALES DISPONIBLES
-        self.initial_technologies = [
-            "Agriculture", "Bronze", "Filosofía", "Religión",
-            "Guerreros", "Despotismo"
-        ]
-
         # COUNTERS GLOBALES
         self.turn_number = 1
         self.phase = "political"       # "political", "action", "production"

@@ -258,34 +258,30 @@ class PlayerActionManager:
                 'cost': {'civil_actions': 1, 'military_actions': 0},
                 'resource_cost': {'food': worker_manager.get_population_cost()},
                 'description': f'Aumentar población por {worker_manager.get_population_cost()} comida'
-            })
-
-        # Action: Assign Worker (if player has workers and materials)
+            })        # Action: Assign Worker (if player has workers and materials)
         if worker_manager.get_available_workers() > 0:
-            # Check each technology for worker assignment possibilities
-            for tech_name in card_manager.current_technologies:
-                building = card_manager.get_building_by_name(tech_name)
-                if building and worker_manager.can_assign_worker_to_building(tech_name, card_manager):
+            # Check each building for worker assignment possibilities
+            all_buildings = card_manager.get_all_buildings()
+            for building in all_buildings:
+                if worker_manager.can_assign_worker_to_building(building.name, card_manager):
                     material_cost = getattr(building, 'build_cost', 0)
                     if resources['material'] >= material_cost:
                         available_actions.append({
                             'type': 'asignar_trabajador',
                             'cost': {'civil_actions': 1, 'military_actions': 0},
                             'resource_cost': {'material': material_cost},
-                            'description': f'Asignar trabajador a {tech_name} por {material_cost} materiales',
-                            'target': tech_name
-                        })
-
-        # Action: Build Building (for technologies that can be built)
-        for tech_name in card_manager.current_technologies:
-            building = card_manager.get_building_by_name(tech_name)
-            if building:
+                            'description': f'Asignar trabajador a {building.name} por {material_cost} materiales',
+                            'target': building.name
+                        })        # Action: Build Building (for cards in hand that can be built)
+        hand_cards = card_manager.get_hand_cards()
+        for card in hand_cards:
+            if hasattr(card, 'build_cost'):
                 available_actions.append({
                     'type': 'construir_edificio',
                     'cost': {'civil_actions': 1, 'military_actions': 0},
                     'resource_cost': {},
-                    'description': f'Construir edificio {tech_name}',
-                    'target': tech_name
+                    'description': f'Construir edificio {card.name}',
+                    'target': card.name
                 })
 
         # Action: Research Technology (if player has science)

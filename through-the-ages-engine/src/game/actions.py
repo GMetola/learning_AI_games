@@ -42,21 +42,20 @@ class ActionValidator:
         # VALIDACIÓN GENERAL: Turno del jugador
         current_player_index = self.game_state.current_turn
         if player_id - 1 != current_player_index:
-            return False, "No es el turno de este jugador"
-
-        # VALIDACIÓN ACCIONES CIVILES Y MILITARES
+            return False, "No es el turno de este jugador"        # VALIDACIÓN ACCIONES CIVILES Y MILITARES
         if action.cost.get('civil_actions', 0) > 0:
-            # TODO: Implementar sistema de acciones civiles disponibles
-            # Por ahora asumimos que cada jugador tiene 4 acciones civiles por turno
-            used_civil_actions = getattr(player_board, 'used_civil_actions', 0)
-            if used_civil_actions >= 4:
-                return False, "No quedan acciones civiles disponibles"
+            # Use the modular action manager to check civil actions
+            civil_actions_needed = action.cost.get('civil_actions', 0)
+            if not player_board.action_manager.can_perform_civil_action(player_board.card_manager, civil_actions_needed):
+                available = player_board.get_civil_actions_available()
+                return False, f"No quedan acciones civiles suficientes (necesita {civil_actions_needed}, disponibles {available})"
 
         if action.cost.get('military_actions', 0) > 0:
-            # TODO: Implementar sistema de acciones militares
-            used_military_actions = getattr(player_board, 'used_military_actions', 0)
-            if used_military_actions >= 2:
-                return False, "No quedan acciones militares disponibles"
+            # Use the modular action manager to check military actions
+            military_actions_needed = action.cost.get('military_actions', 0)
+            if not player_board.action_manager.can_perform_military_action(player_board.card_manager, military_actions_needed):
+                available = player_board.get_military_actions_available()
+                return False, f"No quedan acciones militares suficientes (necesita {military_actions_needed}, disponibles {available})"
 
         # VALIDACIÓN ESPECÍFICA POR TIPO
         if action.action_type == 'tomar_carta':
@@ -102,11 +101,9 @@ class ActionValidator:
         card_name = action.parameters.get('card_name')
 
         if not card_name:
-            return False, "Nombre de carta requerido para construir"
-
-        # Verificar si el jugador tiene la carta
-        if card_name not in player_board.current_technologies:
-            return False, f"Jugador no posee la tecnología: {card_name}"
+            return False, "Nombre de carta requerido para construir"        # Verificar si el jugador tiene la carta en mano (para construir)
+        if not player_board.card_manager.has_card_in_hand(card_name):
+            return False, f"Jugador no tiene la carta en mano: {card_name}"
 
         return True, ""
 
@@ -120,14 +117,14 @@ class ActionValidator:
         if player_board.yellow_reserves['available_workers'] <= 0:
             return False, "No hay trabajadores disponibles"
 
-        if tech_name not in player_board.current_technologies:
+        if not player_board.has_technology(tech_name):
             return False, f"Tecnología no disponible: {tech_name}"
 
         # Check if player has enough materials to assign worker
-        tech_info = player_board.current_technologies[tech_name]
-        if 'card_object' in tech_info:
-            tech_card = tech_info['card_object']
-            material_cost = tech_card.build_cost
+        # Only production buildings and some urban buildings need material cost for workers
+        building = player_board.card_manager.get_building_by_name(tech_name)
+        if building and hasattr(building, 'build_cost'):
+            material_cost = building.build_cost
             if player_board.resources['material'] < material_cost:
                 return False, f"Materiales insuficientes para asignar trabajador a {tech_name}: necesitas {material_cost}, tienes {player_board.resources['material']}"
 
@@ -142,10 +139,8 @@ class ActionValidator:
             return False, "Nombre de carta requerido para investigar"
 
         if player_board.resources['science'] < science_cost:
-            return False, f"Ciencia insuficiente: necesitas {science_cost}, tienes {player_board.resources['science']}"
-
-        # Verificar si ya tiene esta tecnología
-        if card_name in player_board.current_technologies:
+            return False, f"Ciencia insuficiente: necesitas {science_cost}, tienes {player_board.resources['science']}"        # Verificar si ya tiene esta tecnología (desarrollada o en mano)
+        if player_board.card_manager.has_card_anywhere(card_name):
             return False, f"Ya posee la tecnología: {card_name}"
 
         return True, ""
@@ -161,15 +156,11 @@ class ActionValidator:
         """
         player = self.game_state.players[player_id - 1]
         player_board = player.board
-        legal_actions = []
+        legal_actions = []        # Verificar acciones civiles disponibles (using modular action manager)
+        available_civil_actions = player_board.get_civil_actions_available()
 
-        # Verificar acciones civiles disponibles
-        used_civil_actions = getattr(player_board, 'used_civil_actions', 0)
-        available_civil_actions = 4 - used_civil_actions
-
-        # Verificar acciones militares disponibles
-        used_military_actions = getattr(player_board, 'used_military_actions', 0)
-        available_military_actions = 2 - used_military_actions
+        # Verificar acciones militares disponibles (using modular action manager)
+        available_military_actions = player_board.get_military_actions_available()
 
         # ACCIONES TOMAR CARTA (requiere acción civil)
         if available_civil_actions > 0:
@@ -192,26 +183,28 @@ class ActionValidator:
                 cost={'civil_actions': 1},
                 player_id=player_id
             )
-            legal_actions.append(action)
-
-        # ACCIONES ASIGNAR TRABAJADOR (no requiere acciones)
-        for tech_name in player_board.current_technologies:
+            legal_actions.append(action)        # ACCIONES ASIGNAR TRABAJADOR (requiere acción civil)
+        # Get all buildings that can have workers assigned
+        all_buildings = player_board.card_manager.get_all_buildings()
+        for building in all_buildings:
             if player_board.yellow_reserves['available_workers'] > 0:
                 action = GameAction(
                     action_type='asignar_trabajador',
-                    parameters={'tech_name': tech_name},
-                    cost={'civil_actions': 0},
+                    parameters={'tech_name': building.name},
+                    cost={'civil_actions': 1},
                     player_id=player_id
                 )
                 legal_actions.append(action)
 
-        # ACCIONES CONSTRUIR EDIFICIO (requiere acción civil)
-        if available_civil_actions > 0:
-            for tech_name, tech_info in player_board.current_technologies.items():
-                if not tech_info.get('built', False):  # Solo si no está construido
+        # ACCIONES CONSTRUIR EDIFICIO (requiere acción civil)        if available_civil_actions > 0:
+            # Buildings to construct come from hand cards or available cards
+            hand_cards = player_board.card_manager.get_hand_cards()
+            for card in hand_cards:
+                # Only buildings can be constructed
+                if hasattr(card, 'build_cost'):
                     action = GameAction(
                         action_type='construir_edificio',
-                        parameters={'card_name': tech_name},
+                        parameters={'card_name': card.name},
                         cost={'civil_actions': 1},
                         player_id=player_id
                     )
@@ -312,14 +305,19 @@ class ActionExecutor:
 
         # Tomar carta del tablero
         card = self.game_state.board.visible_civil_cards[card_position]
-        self.game_state.board.visible_civil_cards[card_position] = None
-
-        # Añadir a tecnologías del jugador
-        if card.card_type in ['Farm', 'Mine', 'Temple', 'Library']:
-            player.board.current_technologies[card.name] = {
-                'card_object': card,  # Store the actual Card object
-                'production': card.production
-            }
+        self.game_state.board.visible_civil_cards[card_position] = None        # Añadir a tecnologías del jugador using the new card manager
+        try:
+            if card.card_type in ['Farm', 'Mine']:
+                player.board.card_manager.add_production_building(card)
+            elif card.card_type in ['Temple', 'Library']:
+                player.board.card_manager.add_urban_building(card)
+            else:
+                # Add to hand for other types of cards
+                player.board.card_manager.add_card_to_hand(card)
+        except ValueError as e:
+            logging.warning(f"Failed to add card {card.name} to player {action.player_id}: {e}")
+            # Add to hand as fallback
+            player.board.card_manager.add_card_to_hand(card)
 
         logging.info(f"Jugador {action.player_id} tomó carta: {card.name}")
 
@@ -348,12 +346,10 @@ class ActionExecutor:
     def _execute_assign_worker(self, action: GameAction) -> Dict[str, Any]:
         """Ejecuta asignación de trabajador"""
         player = self.game_state.players[action.player_id - 1]
-        tech_name = action.parameters['tech_name']
-
-        # Get the Card object from current_technologies
-        if tech_name in player.board.current_technologies:
-            tech_card = player.board.current_technologies[tech_name]['card_object']
-            success = player.board.assign_worker_to_building(tech_card)
+        tech_name = action.parameters['tech_name']        # Get the Card object from the card manager
+        building = player.board.card_manager.get_building_by_name(tech_name)
+        if building:
+            success = player.board.assign_worker_to_building(building)
         else:
             success = False
 
@@ -370,23 +366,55 @@ class ActionExecutor:
         """Ejecuta construcción de edificio"""
         player = self.game_state.players[action.player_id - 1]
         card_name = action.parameters['card_name']
-        building_type = action.parameters.get('building_type', 'building')
+        building_type = action.parameters.get('building_type', 'building')        # Implement proper building construction logic with modular system
+        # First check if the card is in hand
+        hand_cards = player.board.card_manager.get_hand_cards()
+        building_card = None
 
-        # TODO: Implementar lógica de construcción de edificios
-        # Por ahora solo verificamos que tenga la tecnología
-        if card_name in player.board.current_technologies:
-            # Marcar como construido (podría ser un campo separado)
-            tech_info = player.board.current_technologies[card_name]
-            tech_info['built'] = True
+        for card in hand_cards:
+            if card.name == card_name:
+                building_card = card
+                break
 
-            logging.info(f"Jugador {action.player_id} construyó {building_type}: {card_name}")
+        if building_card:
+            # Remove from hand and add to appropriate building collection
+            player.board.card_manager.remove_card_from_hand(building_card)
 
-            return {
-                'success': True,
-                'card_name': card_name,
-                'building_type': building_type,
-                'player_id': action.player_id
-            }
+            try:
+                if hasattr(building_card, 'card_type'):
+                    if building_card.card_type in ['Farm', 'Mine']:
+                        player.board.card_manager.add_production_building(building_card)
+                    elif building_card.card_type in ['Temple', 'Library']:
+                        player.board.card_manager.add_urban_building(building_card)
+                    else:
+                        # For other building types, add back to hand for now
+                        player.board.card_manager.add_card_to_hand(building_card)
+
+                logging.info(f"Jugador {action.player_id} construyó edificio: {card_name}")
+
+                return {
+                    'success': True,
+                    'card_name': card_name,
+                    'building_type': getattr(building_card, 'building_type', 'building'),
+                    'player_id': action.player_id
+                }
+            except ValueError as e:
+                # If failed to add, put back in hand
+                player.board.card_manager.add_card_to_hand(building_card)
+                logging.error(f"Failed to build {card_name}: {e}")
+                return {
+                    'success': False,
+                    'error': str(e),
+                    'player_id': action.player_id
+                }
+            else:
+                # Technology exists but no building card - this shouldn't happen with new system
+                logging.warning(f"Technology {card_name} exists but no building card found")
+                return {
+                    'success': False,
+                    'error': f"Tecnología {card_name} no tiene edificio asociado",
+                    'player_id': action.player_id
+                }
         else:
             return {
                 'success': False,
@@ -401,14 +429,19 @@ class ActionExecutor:
         science_cost = action.parameters.get('science_cost', 0)
 
         # Pagar coste de ciencia
-        player.board.resources['science'] -= science_cost
-
-        # Agregar nueva tecnología
-        player.board.current_technologies[card_name] = {
-            'production': action.parameters.get('production', {}),
-            'researched': True,
-            'workers': 0
-        }
+        player.board.resources['science'] -= science_cost        # Agregar nueva tecnología to hand for now
+        # In the future, this should create the appropriate card object and add it to hand
+        # For now, we'll add it as a basic card to hand
+        try:
+            from .card_loader import CardLoader
+            loader = CardLoader()
+            card = loader.get_card_by_name(card_name)
+            if card:
+                player.board.card_manager.add_card_to_hand(card)
+            else:
+                logging.warning(f"Card {card_name} not found in loader, research action may have issues")
+        except Exception as e:
+            logging.warning(f"Failed to load researched card {card_name}: {e}")
 
         # REGISTRAR MEJORA DEL TURNO
         player.board.add_technology_researched(card_name)
@@ -431,18 +464,23 @@ class ActionExecutor:
         card = self.game_state.board.visible_civil_cards[card_position]
         self.game_state.board.visible_civil_cards[card_position] = None
 
-        # Añadir a tecnologías del jugador
-        if card and card.card_type in ['Farm', 'Mine', 'Temple', 'Library']:
-            player.board.current_technologies[card.name] = {
-                'card_object': card,  # Store the actual Card object
-                'production': card.production
-            }
+        # Añadir a tecnologías del jugador using the new card manager
+        if card:
+            try:
+                if card.card_type in ['Farm', 'Mine']:
+                    player.board.card_manager.add_production_building(card, built=False)
+                elif card.card_type in ['Temple', 'Library']:
+                    player.board.card_manager.add_urban_building(card, built=False)
+                else:
+                    # Add to hand for other types of cards
+                    player.board.card_manager.add_card_to_hand(card)
+            except ValueError as e:
+                logging.warning(f"Failed to add card {card.name} to player {action.player_id}: {e}")
+                # Add to hand as fallback
+                player.board.card_manager.add_card_to_hand(card)
+
             # REGISTRAR COMO TECNOLOGÍA INVESTIGADA
             player.board.add_technology_researched(card.name)
-
-        # ACTUALIZAR NÚMERO DE CARTAS EN MANO
-        # TODO: Implementar sistema de cartas en mano cuando esté disponible
-        # player.board.update_cards_in_hand(len(player.cards))
 
         logging.info(f"Jugador {action.player_id} tomó carta: {card.name}")
 
