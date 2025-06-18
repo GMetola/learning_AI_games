@@ -2,15 +2,7 @@
   "game_board": {
     "initial_age": "A",
     "visible_civil_cards": 13,
-    "peaceful_version": true,
-    "initial_technologies": [
-      "Agriculture",
-      "Bronze",
-      "Filosofía",
-      "Religión",
-      "Guerreros",
-      "Despotismo"
-    ]
+    "peaceful_version": true
   },
   "blue_reserve": {
     "total_cubes": 16,
