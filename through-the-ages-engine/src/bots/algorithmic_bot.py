@@ -1,26 +1,8 @@
 import random
 import logging
-import sys
-import os
 from typing import Dict, List
-from .base_bot import BaseBot
-
-# Handle GameAction import for both package and direct script execution
-GameAction = None
-try:
-    from ..game.actions import GameAction
-except (ImportError, ValueError):
-    # Fallback for when running as script directly
-    try:
-        from game.actions import GameAction
-    except ImportError:
-        # Final fallback - add src to path and try again
-        sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
-        try:
-            from game.actions import GameAction
-        except ImportError:
-            # If still failing, we'll handle it later in the code
-            pass
+from bots.base_bot import BaseBot
+from game.actions import GameAction
 
 class AlgorithmicBot(BaseBot):
     def __init__(self, bot_id: str, name: str, difficulty: str = "medium"):
@@ -66,7 +48,7 @@ class AlgorithmicBot(BaseBot):
                 'randomness': 0.05
             }
 
-    def make_move(self, game_state, available_actions: List) -> Dict:
+    def make_move(self, game_state, available_actions: List) -> GameAction:
         """Selecciona un movimiento usando estrategias algorítmicas
 
         Args:
@@ -74,70 +56,29 @@ class AlgorithmicBot(BaseBot):
             available_actions: Lista de GameAction objects disponibles
 
         Returns:
-            Dict: Acción seleccionada en formato dict
+            action (GameAction)
         """
-        global GameAction
-        # Ensure GameAction is available
-        if GameAction is None:
-            try:
-                from game.actions import GameAction
-            except ImportError:
-                # If we still can't import, treat all actions as dict format
-                logging.warning("GameAction not available, treating all actions as dict format")
-                pass
-
         if not available_actions:
             logging.warning(f"Bot {self.name}: Sin acciones disponibles")
             return {'type': 'end_turn'}
+        logging.info(f"Bot {self.name} analizando acciones disponibles: {len(available_actions)} acciones\n"
+                     f"Tiene estos recursos: {game_state.players[self.player_id - 1].board.resource_manager.get_resource_summary()}")
 
         # Analyze player capabilities using new methods
-        capabilities = self._analyze_player_capabilities(game_state)
-        action_priorities = self._prioritize_actions_based_on_capabilities(game_state)
+        ordered_actions = self._prioritize_actions_based_on_capabilities(game_state)
 
-        logging.info(f"Bot {self.name}: Analyzing capabilities - Civil actions: {capabilities['action_summary']['civil_actions_available']}, Can increase pop: {capabilities['population_check']['can_increase']}")
+        for action in ordered_actions:
+            logging.info(f"Puntos: {action.estimated_points_gotten:.2f} -  Acción: {action.action_type} - Parámetros: {action.parameters}")
 
-        # Convert GameAction objects to evaluation format if needed
-        if available_actions and GameAction and isinstance(available_actions[0], GameAction):
-            # Evaluate each GameAction with capability awareness
-            scored_actions = []
-            for action in available_actions:
-                score = self._evaluate_game_action_with_capabilities(action, game_state, capabilities)
-                scored_actions.append((action, score))
-        else:
-            # Legacy format handling
-            scored_actions = []
-            for action in available_actions:
-                score = self._evaluate_action(action, game_state)
-                scored_actions.append((action, score))
+        return ordered_actions[0]
 
-        # Ordena por puntuación descendente
-        scored_actions.sort(key=lambda x: x[1], reverse=True)
+    def _evaluate_game_action(self, action: GameAction, game_state) -> float:
+        """Evalúa una GameAction específica
+        Un jugador debe llamar a _evaluate_game_action_with_capabilities para tener sus capacidades en cuenta
 
-        # SELECCIÓN CON ALEATORIEDAD
-        randomness = self.strategy_weights['randomness']
-        if random.random() < randomness and len(scored_actions) > 1:
-            # Choose from top 3 actions randomly
-            top_actions = scored_actions[:min(3, len(scored_actions))]
-            selected_action = random.choice(top_actions)[0]
-        else:
-            selected_action = scored_actions[0][0]
-
-        # Convert GameAction to dict format for compatibility
-        if isinstance(selected_action, GameAction):
-            action_dict = {
-                'type': selected_action.action_type,
-                'parameters': selected_action.parameters,
-                'cost': selected_action.cost,
-                'player_id': selected_action.player_id
-            }
-            logging.info(f"Bot {self.name} eligió acción: {selected_action.action_type}")
-            return action_dict
-        else:
-            logging.info(f"Bot {self.name} eligió acción: {selected_action.get('type', 'unknown')}")
-            return selected_action
-
-    def _evaluate_game_action(self, action, game_state) -> float:
-        """Evalúa una GameAction específica"""
+        Returns:
+            float: Puntuación de la acción (0 a 1)
+        """
         # Get current era for era-based strategy
         current_era = self._get_current_era(game_state)
 
@@ -174,7 +115,7 @@ class AlgorithmicBot(BaseBot):
         era_modifier = self._get_era_strategy_modifier(action_type, current_era, player_board)
 
         # EVALUACIÓN POR TIPO DE ACCIÓN (with era considerations)
-        if action_type == 'aumentar_población':
+        if action_type == 'aumentar_poblacion':
             score += self._evaluate_population_action(player_board) * era_modifier
         elif action_type == 'tomar_carta':
             score += self._evaluate_take_card_action(action, game_state) * era_modifier
@@ -231,13 +172,13 @@ class AlgorithmicBot(BaseBot):
             elif action_type == 'construir_edificio':
                 # Production buildings are crucial
                 base_modifier = 1.4
-            elif action_type == 'aumentar_población':
+            elif action_type == 'aumentar_poblacion':
                 # Population growth is important
                 base_modifier = 1.3
 
         elif era == 'II':
             # Era II: BALANCING - population growth, happiness, food production
-            if action_type == 'aumentar_población':
+            if action_type == 'aumentar_poblacion':
                 # Very high priority for population growth
                 base_modifier = 1.6
             elif action_type == 'construir_edificio':
@@ -455,8 +396,8 @@ class AlgorithmicBot(BaseBot):
         else:
             return 0.2
 
-    def _analyze_player_capabilities(self, game_state) -> dict:
-        """Analyze what the player can do using the new player board methods
+    def _get_player_capabilities(self, game_state) -> dict:
+        """Get what the player can do
 
         Args:
             game_state: Current game state
@@ -473,10 +414,15 @@ class AlgorithmicBot(BaseBot):
         # Check specific action capabilities
         population_check = player_board.can_increase_population_with_details()
 
-        # Check worker assignment possibilities for all developed technologies
-        worker_assignments = {}
-        for tech_name in player_board.card_manager.get_all_technology_names():
-            worker_assignments[tech_name] = player_board.can_assign_worker_to_technology(tech_name)
+        # Check worker assignment for production buildings
+        available_production_jobs = {}
+        for building in player_board.card_manager.get_production_buildings():
+            available_production_jobs[building.name] = player_board.can_build_building(building)
+
+        # Check worker assignment to urban buildings
+        available_urban_jobs = {}
+        for building in player_board.card_manager.get_urban_buildings():
+            available_urban_jobs[building.name] = player_board.can_build_building(building)
 
         # Check research possibilities for cards in hand
         research_possibilities = {}
@@ -495,7 +441,8 @@ class AlgorithmicBot(BaseBot):
         return {
             'action_summary': action_summary,
             'population_check': population_check,
-            'worker_assignments': worker_assignments,
+            'available_production_jobs': available_production_jobs,
+            'available_urban_jobs': available_urban_jobs,
             'research_possibilities': research_possibilities,
             'building_possibilities': building_possibilities
         }
@@ -507,56 +454,79 @@ class AlgorithmicBot(BaseBot):
             game_state: Current game state
 
         Returns:
-            List[str]: Ordered list of recommended action types
+            List[GameAction]: Ordered list of recommended action types
         """
-        capabilities = self._analyze_player_capabilities(game_state)
-        priorities = self._get_strategy_weights()
+        capabilities = self._get_player_capabilities(game_state)
         action_priorities = []
 
         # Population growth priority
         if capabilities['population_check']['can_increase']:
-            priority_score = priorities['population_priority']
-            action_priorities.append(('aumentar_población', priority_score))
+            action = GameAction(
+                action_type='aumentar_poblacion',
+                parameters={},
+                number_of_actions_spent={'civil': 1, 'military': 0},
+                player_id=self.player_id
+            )
+            action = self._evaluate_game_action_with_capabilities(action, game_state, capabilities)
+            action_priorities.append(action)
 
         # Worker assignment priorities
-        assignable_workers = [tech for tech, check in capabilities['worker_assignments'].items()
-                            if check['can_assign']]
+        assignable_producers = [tech for tech, check in capabilities['available_production_jobs'].items() if check['can_build']]
+        assignable_urbanite = [tech for tech, check in capabilities['available_urban_jobs'].items() if check['can_build']]
+        assignable_workers = assignable_producers + assignable_urbanite
         if assignable_workers:
             # Prioritize production buildings
             for tech in assignable_workers:
-                if 'Farm' in tech or 'Mine' in tech:
-                    priority_score = priorities['production_priority']
-                    action_priorities.append(('asignar_trabajador', priority_score, tech))
+                action = GameAction(
+                    action_type='asignar_trabajador',
+                    parameters={'tech_name': tech},
+                    number_of_actions_spent={'civil': 1, 'military': 0},
+                    player_id=self.player_id
+                )
+                action = self._evaluate_game_action_with_capabilities(action, game_state, capabilities)
+                action_priorities.append(action)
 
         # Research priorities
-        researchable_cards = [card for card, check in capabilities['research_possibilities'].items()
-                            if check['can_research']]
+        researchable_cards = [card for card, check in capabilities['research_possibilities'].items() if check['can_research']]
         if researchable_cards:
             for card in researchable_cards:
-                # Assign priority based on card type
-                if 'Farm' in card or 'Mine' in card:
-                    priority_score = priorities['production_priority']
-                elif 'Temple' in card or 'Library' in card:
-                    priority_score = priorities['culture_priority']
-                else:
-                    priority_score = 0.15  # Default priority
-                action_priorities.append(('research_technology', priority_score, card))
+                action = GameAction(
+                    action_type='desarrollar_tecnologia',
+                    parameters={'card_name': card},
+                    number_of_actions_spent={'civil': 1, 'military': 0},
+                    player_id=self.player_id
+                )
+                action = self._evaluate_game_action_with_capabilities(action, game_state, capabilities)
+                action_priorities.append(action)
 
         # Building priorities
-        buildable_cards = [card for card, check in capabilities['building_possibilities'].items()
-                         if check['can_build']]
+        buildable_cards = [card for card, check in capabilities['building_possibilities'].items() if check['can_build']]
         if buildable_cards:
             for card in buildable_cards:
-                priority_score = priorities['production_priority']
-                action_priorities.append(('construir_edificio', priority_score, card))
+                action = GameAction(
+                    action_type='construir_edificio',
+                    parameters={'card_name': card},
+                    number_of_actions_spent={'civil': 1, 'military': 0},
+                    player_id=self.player_id
+                )
+                action = self._evaluate_game_action_with_capabilities(action, game_state, capabilities)
+                action_priorities.append(action)
 
         # Sort by priority score (descending)
-        action_priorities.sort(key=lambda x: x[1], reverse=True)
+        action_priorities.sort(key=lambda x: x.estimated_points_gotten, reverse=True)
 
         return action_priorities
 
-    def _evaluate_game_action_with_capabilities(self, action, game_state, capabilities) -> float:
-        """Evalúa una GameAction con conocimiento de las capacidades del jugador"""
+    def _evaluate_game_action_with_capabilities(self, action: GameAction, game_state, capabilities) -> float:
+        """Evalúa una GameAction con conocimiento de las capacidades del jugador
+        Args:
+            action (GameAction): Acción a evaluar
+            game_state: Estado actual del juego
+            capabilities (dict): Análisis de capacidades del jugador
+        Returns:
+            action (GameAction): Acción evaluada con puntuación incluida
+
+        """
         action_type = action.action_type
         score = 0.0
 
@@ -565,7 +535,7 @@ class AlgorithmicBot(BaseBot):
         score += base_score
 
         # Bonus scoring based on capability analysis
-        if action_type == 'aumentar_población':
+        if action_type == 'aumentar_poblacion':
             pop_check = capabilities['population_check']
             if pop_check['can_increase']:
                 # Higher priority if we have excess food
@@ -575,12 +545,20 @@ class AlgorithmicBot(BaseBot):
                 score += 0.2  # Base bonus for viable population increase
             else:
                 score -= 0.5  # Penalty for impossible action
-
         elif action_type == 'asignar_trabajador':
             tech_name = action.parameters.get('tech_name', '')
-            if tech_name in capabilities['worker_assignments']:
-                worker_check = capabilities['worker_assignments'][tech_name]
-                if worker_check['can_assign']:
+            if tech_name in capabilities['available_production_jobs']:
+                worker_check = capabilities['available_production_jobs'][tech_name]
+                if worker_check.get('can_build', False):
+                    # Bonus for production buildings
+                    if 'Farm' in tech_name or 'Mine' in tech_name:
+                        score += 0.25
+                    score += 0.15  # Base bonus for viable worker assignment
+                else:
+                    score -= 0.8  # Heavy penalty for impossible assignment
+            elif tech_name in capabilities['available_urban_jobs']:
+                worker_check = capabilities['available_urban_jobs'][tech_name]
+                if worker_check.get('can_build', False):
                     # Bonus for production buildings
                     if 'Farm' in tech_name or 'Mine' in tech_name:
                         score += 0.25
@@ -588,7 +566,7 @@ class AlgorithmicBot(BaseBot):
                 else:
                     score -= 0.8  # Heavy penalty for impossible assignment
 
-        elif action_type == 'research_technology':
+        elif action_type == 'desarrollar_tecnologia':
             card_name = action.parameters.get('card_name', '')
             if card_name in capabilities['research_possibilities']:
                 research_check = capabilities['research_possibilities'][card_name]
@@ -608,5 +586,5 @@ class AlgorithmicBot(BaseBot):
                     score += 0.2  # Bonus for viable building construction
                 else:
                     score -= 0.6  # Penalty for impossible construction
-
-        return score
+        action.estimated_points_gotten = score
+        return action

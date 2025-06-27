@@ -51,7 +51,11 @@ class Technology(CivilCard):
         super().__init__(name, age, tech_cost, card_text)
 
 class Building(Technology):
-    """Base class for buildings that can have workers"""
+    """Base class for cards that can have workers:
+        -Production buildings (farms, mines)
+        -Urban buildings (labs, temples, arenas, libraries, theaters)
+        -Military buildings (barracks, stables, workshops)
+    """
 
     def __init__(self, name: str, age: str, tech_cost: int = 0, build_cost: int = 0,
                  card_text: str = ""):
@@ -66,48 +70,34 @@ class Building(Technology):
         """
         super().__init__(name, age, tech_cost, card_text)
         self.build_cost = build_cost
-        self.workers = []  # List of worker tokens assigned
-        self.max_workers = 2  # Default max workers (should be from government)
+        self.num_assigned_workers = 0  # Number of workers assigned to this building
 
-    def can_assign_worker(self) -> bool:
-        """Check if a worker can be assigned to this building"""
-        return len(self.workers) < self.max_workers
-
-    def assign_worker(self, worker_id: str) -> bool:
+    def assign_worker(self) -> bool:
         """Assign a worker to this building
-
-        Args:
-            worker_id (str): Identifier for the worker
 
         Returns:
             bool: True if worker was assigned successfully
         """
-        if self.can_assign_worker():
-            self.workers.append(worker_id)
-            logging.info(f"Worker {worker_id} assigned to {self.name}")
-            return True
-        logging.warning(f"Cannot assign worker to {self.name}: maximum workers reached")
-        return False
+        self.num_assigned_workers += 1
+        logging.info(f"Worker assigned to {self.name} (total: {self.num_assigned_workers})")
+        return True
 
-    def remove_worker(self, worker_id: str) -> bool:
+    def remove_worker(self) -> bool:
         """Remove a worker from this building
-
-        Args:
-            worker_id (str): Identifier for the worker
 
         Returns:
             bool: True if worker was removed successfully
         """
-        if worker_id in self.workers:
-            self.workers.remove(worker_id)
-            logging.info(f"Worker {worker_id} removed from {self.name}")
+        if self.num_assigned_workers > 0:
+            self.num_assigned_workers -= 1
+            logging.info(f"Worker removed from {self.name} (remaining: {self.num_assigned_workers})")
             return True
-        logging.warning(f"Worker {worker_id} not found in {self.name}")
+        logging.warning(f"No workers to remove from {self.name}")
         return False
 
     def get_worker_count(self) -> int:
         """Get the number of workers assigned to this building"""
-        return len(self.workers)
+        return self.num_assigned_workers
 
 class ProductionBuilding(Building):
     """Production buildings (farms, mines, labs) that can store blue tokens"""
@@ -166,12 +156,9 @@ class ProductionBuilding(Building):
         Returns:
             Dict[str, int]: Resource type -> total production
         """
-        total = {}
-
-        # Production from workers
-        worker_count = self.get_worker_count()
+        total = {}        # Production from workers
         for resource, amount_per_worker in self.production.items():
-            total[resource] = worker_count * amount_per_worker
+            total[resource] = self.num_assigned_workers * amount_per_worker
 
         # Add stored resources from blue tokens
         stored = self.get_stored_resources()

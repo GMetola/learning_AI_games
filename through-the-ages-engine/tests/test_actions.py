@@ -53,21 +53,21 @@ class TestGameActions(unittest.TestCase):
         take_action = ActionFactory.create_take_card_action(1, 0)
         self.assertEqual(take_action.action_type, 'tomar_carta')
         self.assertEqual(take_action.parameters['card_position'], 0)
-        self.assertEqual(take_action.cost['civil_actions'], 1)
+        self.assertEqual(take_action.number_of_actions_spent['civil_actions'], 1)
 
         # Test increase population action
         pop_action = ActionFactory.create_increase_population_action(1)
-        self.assertEqual(pop_action.action_type, 'aumentar_población')
-        self.assertEqual(pop_action.cost['civil_actions'], 1)        # Test assign worker action
+        self.assertEqual(pop_action.action_type, 'aumentar_poblacion')
+        self.assertEqual(pop_action.number_of_actions_spent['civil_actions'], 1)        # Test assign worker action
         worker_action = ActionFactory.create_assign_worker_action(1, 'Agriculture')
         self.assertEqual(worker_action.action_type, 'asignar_trabajador')
         self.assertEqual(worker_action.parameters['tech_name'], 'Agriculture')
-        self.assertEqual(worker_action.cost['civil_actions'], 1)
+        self.assertEqual(worker_action.number_of_actions_spent['civil_actions'], 1)
 
         # Test end turn action
         end_action = ActionFactory.create_end_turn_action(1)
         self.assertEqual(end_action.action_type, 'terminar_turno')
-        self.assertEqual(end_action.cost['civil_actions'], 0)
+        self.assertEqual(end_action.number_of_actions_spent['civil_actions'], 0)
 
     def test_action_validation_turn_check(self):
         """Test that actions are validated for correct player turn"""
@@ -213,9 +213,9 @@ class TestGameActions(unittest.TestCase):
         ]
 
         # Test filtering by type
-        pop_actions = ActionUtils.filter_actions_by_type(actions, 'aumentar_población')
+        pop_actions = ActionUtils.filter_actions_by_type(actions, 'aumentar_poblacion')
         self.assertEqual(len(pop_actions), 1)
-        self.assertEqual(pop_actions[0].action_type, 'aumentar_población')        # Test cost calculation
+        self.assertEqual(pop_actions[0].action_type, 'aumentar_poblacion')        # Test cost calculation
         total_cost = ActionUtils.calculate_total_cost(actions)
         self.assertEqual(total_cost['civil_actions'], 3)  # take card + increase pop + assign worker
         self.assertEqual(total_cost['military_actions'], 0)

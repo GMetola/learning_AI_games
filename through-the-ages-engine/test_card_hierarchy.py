@@ -26,13 +26,10 @@ def test_card_creation():
     )
 
     print(f"Created: {farm}")
-    print(f"Can assign worker: {farm.can_assign_worker()}")
-
     # Test worker assignment
     farm.assign_worker("worker_1")
     farm.assign_worker("worker_2")
     print(f"Workers assigned: {farm.get_worker_count()}")
-    print(f"Can assign more: {farm.can_assign_worker()}")
 
     # Test blue token storage
     farm.store_blue_token("token_1", "food", 3)

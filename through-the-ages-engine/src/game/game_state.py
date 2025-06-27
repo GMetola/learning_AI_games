@@ -1,6 +1,9 @@
 from typing import Dict, List
 import logging
-from .board import PlayerBoard, GameBoard
+
+from game.board import PlayerBoard, GameBoard
+from game.cards import CardLoader
+
 
 class GameState:
     def __init__(self):
@@ -51,16 +54,12 @@ class GameState:
 
     def _setup_initial_cards(self):
         """Configura cartas iniciales en el tablero"""
-        try:
-            from .cards import CardLoader
-            loader = CardLoader()
-            cards = loader.load_cards_from_csv()
+        loader = CardLoader()
+        cards = loader.load_cards_from_csv()
 
-            if cards:
-                self.board.setup_initial_civil_row()
-                logging.info("Cartas iniciales configuradas en el tablero")
-        except Exception as e:
-            logging.warning(f"No se pudieron cargar cartas iniciales: {e}")
+        if cards:
+            self.board.setup_initial_civil_row()
+            logging.info("Cartas iniciales configuradas en el tablero")
 
     def get_current_player(self) -> str:
         """Obtiene el nombre del jugador actual"""

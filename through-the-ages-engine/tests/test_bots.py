@@ -20,7 +20,7 @@ class TestBots(unittest.TestCase):
         initial_state = self.game_state.get_state()
         available_actions = [
             {"action_type": "tomar_carta", "card_position": 0},
-            {"action_type": "aumentar_población"},
+            {"action_type": "aumentar_poblacion"},
             {"action_type": "terminar_turno"}
         ]
         action = self.algorithmic_bot.make_move(initial_state, available_actions)
@@ -31,7 +31,7 @@ class TestBots(unittest.TestCase):
         initial_state = self.game_state.get_state()
         available_actions = [
             {"action_type": "tomar_carta", "card_position": 0},
-            {"action_type": "aumentar_población"},
+            {"action_type": "aumentar_poblacion"},
             {"action_type": "terminar_turno"}
         ]
         action = self.ai_bot.make_move(initial_state, available_actions)
@@ -45,7 +45,7 @@ class TestBots(unittest.TestCase):
         initial_state = self.game_state.get_state()
         available_actions = [
             {"action_type": "tomar_carta", "card_position": 0},
-            {"action_type": "aumentar_población"},
+            {"action_type": "aumentar_poblacion"},
             {"action_type": "terminar_turno"}
         ]
         algo_action = self.algorithmic_bot.make_move(initial_state, available_actions)

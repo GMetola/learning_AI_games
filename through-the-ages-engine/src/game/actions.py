@@ -5,15 +5,32 @@ import logging
 @dataclass
 class GameAction:
     """Representa una acción del juego estandarizada para bots"""
-    action_type: str  # 'tomar_carta', 'construir_edificio', 'aumentar_población'
+    action_type: str  # 'tomar_carta', 'construir_edificio', 'aumentar_poblacion'
     parameters: Dict[str, Any]  # Parámetros específicos de la acción
-    cost: Dict[str, int]  # Coste en acciones civiles/militares
+    number_of_actions_spent: Dict[str, int]  # Coste en acciones civiles/militares
     player_id: int  # ID del jugador que ejecuta la acción
+    estimated_points_gotten: Optional[int] = None  # Puntos estimados ganados por la acción
+
+    def __init__(self, action_type: str, parameters: Dict[str, Any], number_of_actions_spent: Dict[str, int], player_id: int, estimated_points_gotten: Optional[int] = None):
+        """Inicializa una acción del juego
+
+        Args:
+            action_type (str): Tipo de acción (e.g. 'tomar_carta', 'construir_edificio')
+            parameters (Dict[str, Any]): Parámetros específicos de la acción
+            number_of_actions_spent (Dict[str, int]): Coste en acciones civiles/militares
+            player_id (int): ID del jugador que ejecuta la acción
+            estimated_points_gotten (Optional[int]): Puntos estimados ganados por la acción
+        """
+        self.action_type = action_type
+        self.parameters = parameters
+        self.number_of_actions_spent = number_of_actions_spent
+        self.player_id = player_id
+        self.estimated_points_gotten = estimated_points_gotten
 
     def __post_init__(self):
         """Inicializa costes por defecto si no se especifican"""
-        if not self.cost:
-            self.cost = {'civil_actions': 1, 'military_actions': 0}
+        if not self.number_of_actions_spent:
+            self.number_of_actions_spent = {'civil_actions': 1, 'military_actions': 0}
 
 class ActionValidator:
     """Valida acciones del juego según las reglas"""
@@ -44,16 +61,16 @@ class ActionValidator:
         if player_id - 1 != current_player_index:
             return False, "No es el turno de este jugador"
         # VALIDACIÓN ACCIONES CIVILES Y MILITARES
-        if action.cost.get('civil_actions', 0) > 0:
+        if action.number_of_actions_spent.get('civil_actions', 0) > 0:
             # Use the modular action manager to check civil actions
-            civil_actions_needed = action.cost.get('civil_actions', 0)
+            civil_actions_needed = action.number_of_actions_spent.get('civil_actions', 0)
             if not player_board.action_manager.can_perform_civil_action(player_board.card_manager, civil_actions_needed):
                 available = player_board.get_civil_actions_available()
                 return False, f"No quedan acciones civiles suficientes (necesita {civil_actions_needed}, disponibles {available})"
 
-        if action.cost.get('military_actions', 0) > 0:
+        if action.number_of_actions_spent.get('military_actions', 0) > 0:
             # Use the modular action manager to check military actions
-            military_actions_needed = action.cost.get('military_actions', 0)
+            military_actions_needed = action.number_of_actions_spent.get('military_actions', 0)
             if not player_board.action_manager.can_perform_military_action(player_board.card_manager, military_actions_needed):
                 available = player_board.get_military_actions_available()
                 return False, f"No quedan acciones militares suficientes (necesita {military_actions_needed}, disponibles {available})"
@@ -61,13 +78,13 @@ class ActionValidator:
         # VALIDACIÓN ESPECÍFICA POR TIPO
         if action.action_type == 'tomar_carta':
             return self._validate_take_card(player_board, action)
-        elif action.action_type == 'aumentar_población':
+        elif action.action_type == 'aumentar_poblacion':
             return self._validate_increase_population(player_board, action)
         elif action.action_type == 'construir_edificio':
             return self._validate_build_building(player_board, action)
         elif action.action_type == 'asignar_trabajador':
             return self._validate_assign_worker(player_board, action)
-        elif action.action_type == 'research_technology':
+        elif action.action_type == 'desarrollar_tecnologia':
             return self._validate_research_technology(player_board, action)
         elif action.action_type == 'terminar_turno':
             return True, ""  # Siempre se puede terminar turno
@@ -184,7 +201,7 @@ class ActionValidator:
                     action = GameAction(
                         action_type='tomar_carta',
                         parameters={'card_position': i},
-                        cost={'civil_actions': 1},
+                        number_of_actions_spent={'civil_actions': 1},
                         player_id=player_id
                     )
                     if self.validate_action(player_id, action)[0]:
@@ -193,9 +210,9 @@ class ActionValidator:
         # ACCIÓN AUMENTAR POBLACIÓN (requiere acción civil)
         if available_civil_actions > 0 and player_board.can_increase_population():
             action = GameAction(
-                action_type='aumentar_población',
+                action_type='aumentar_poblacion',
                 parameters={},
-                cost={'civil_actions': 1},
+                number_of_actions_spent={'civil_actions': 1},
                 player_id=player_id
             )
             legal_actions.append(action)        # ACCIONES ASIGNAR TRABAJADOR (requiere acción civil)
@@ -206,7 +223,7 @@ class ActionValidator:
                 action = GameAction(
                     action_type='asignar_trabajador',
                     parameters={'tech_name': building.name},
-                    cost={'civil_actions': 1},
+                    number_of_actions_spent={'civil_actions': 1},
                     player_id=player_id
                 )
                 legal_actions.append(action)
@@ -220,7 +237,7 @@ class ActionValidator:
                     action = GameAction(
                         action_type='construir_edificio',
                         parameters={'card_name': card.name},
-                        cost={'civil_actions': 1},
+                        number_of_actions_spent={'civil_actions': 1},
                         player_id=player_id
                     )
                     legal_actions.append(action)
@@ -229,7 +246,7 @@ class ActionValidator:
         action = GameAction(
             action_type='terminar_turno',
             parameters={},
-            cost={'civil_actions': 0},
+            number_of_actions_spent={'civil_actions': 0},
             player_id=player_id
         )
         legal_actions.append(action)
@@ -274,8 +291,8 @@ class ActionExecutor:
         player = self.game_state.players[action.player_id - 1]
 
         # CONSUMIR ACCIONES DEL BOT Y TABLERO
-        civil_cost = action.cost.get('civil_actions', 0)
-        military_cost = action.cost.get('military_actions', 0)
+        civil_cost = action.number_of_actions_spent.get('civil_actions', 0)
+        military_cost = action.number_of_actions_spent.get('military_actions', 0)
 
         if civil_cost > 0:
             bot.consume_civil_action(civil_cost)
@@ -295,13 +312,13 @@ class ActionExecutor:
         result = None
         if action.action_type == 'tomar_carta':
             result = self._execute_take_card(action)
-        elif action.action_type == 'aumentar_población':
+        elif action.action_type == 'aumentar_poblacion':
             result = self._execute_increase_population(action)
         elif action.action_type == 'asignar_trabajador':
             result = self._execute_assign_worker(action)
         elif action.action_type == 'construir_edificio':
             result = self._execute_build_building(action)
-        elif action.action_type == 'research_technology':
+        elif action.action_type == 'desarrollar_tecnologia':
             result = self._execute_research_technology(action)
         elif action.action_type == 'terminar_turno':
             result = self._execute_end_turn(action)
@@ -702,7 +719,7 @@ class ActionFactory:
         return GameAction(
             action_type='tomar_carta',
             parameters={'card_position': card_position},
-            cost={'civil_actions': 1, 'military_actions': 0},
+            number_of_actions_spent={'civil_actions': 1, 'military_actions': 0},
             player_id=player_id
         )
 
@@ -717,9 +734,9 @@ class ActionFactory:
             GameAction: Acción de aumentar población
         """
         return GameAction(
-            action_type='aumentar_población',
+            action_type='aumentar_poblacion',
             parameters={},
-            cost={'civil_actions': 1, 'military_actions': 0},
+            number_of_actions_spent={'civil_actions': 1, 'military_actions': 0},
             player_id=player_id
         )
 
@@ -737,7 +754,7 @@ class ActionFactory:
         return GameAction(
             action_type='asignar_trabajador',
             parameters={'tech_name': tech_name},
-            cost={'civil_actions': 1, 'military_actions': 0},
+            number_of_actions_spent={'civil_actions': 1, 'military_actions': 0},
             player_id=player_id
         )
 
@@ -755,7 +772,7 @@ class ActionFactory:
         return GameAction(
             action_type='asignar_guerrero',
             parameters={'tech_name': tech_name},
-            cost={'civil_actions': 0, 'military_actions': 1},
+            number_of_actions_spent={'civil_actions': 0, 'military_actions': 1},
             player_id=player_id
         )
 
@@ -774,7 +791,7 @@ class ActionFactory:
         return GameAction(
             action_type='construir_edificio',
             parameters={'card_name': card_name, 'building_type': building_type},
-            cost={'civil_actions': 1, 'military_actions': 0},
+            number_of_actions_spent={'civil_actions': 1, 'military_actions': 0},
             player_id=player_id
         )
 
@@ -791,7 +808,7 @@ class ActionFactory:
         return GameAction(
             action_type='terminar_turno',
             parameters={},
-            cost={'civil_actions': 0, 'military_actions': 0},
+            number_of_actions_spent={'civil_actions': 0, 'military_actions': 0},
             player_id=player_id
         )
 
@@ -825,7 +842,7 @@ class ActionUtils:
         total_cost = {'civil_actions': 0, 'military_actions': 0}
 
         for action in actions:
-            for cost_type, cost_value in action.cost.items():
+            for cost_type, cost_value in action.number_of_actions_spent.items():
                 total_cost[cost_type] = total_cost.get(cost_type, 0) + cost_value
 
         return total_cost

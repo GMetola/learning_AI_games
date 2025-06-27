@@ -135,9 +135,7 @@ The game includes these urban building categories:
 Urban buildings can have workers assigned to them:
 
 ```python
-# Check if a worker can be assigned
-if building.can_assign_worker():
-    building.assign_worker("worker_1")
+building.assign_worker("worker_1")
 
 # Get worker count
 worker_count = building.get_worker_count()

@@ -10,10 +10,11 @@ This is the main PlayerBoard class that delegates responsibilities to specialize
 
 from typing import Dict, List, Optional, Any
 import logging
-from .player_card_manager import PlayerCardManager
-from .player_resource_manager import PlayerResourceManager
-from .player_worker_manager import PlayerWorkerManager
-from .player_action_manager import PlayerActionManager
+from game.card_classes import Building
+from game.player_card_manager import PlayerCardManager
+from game.player_resource_manager import PlayerResourceManager
+from game.player_worker_manager import PlayerWorkerManager
+from game.player_action_manager import PlayerActionManager
 
 
 class PlayerBoard:
@@ -279,6 +280,9 @@ class PlayerBoard:
     def complete_turn(self):
         """Complete turn and reset action counters"""
         self.action_manager.reset_turn()
+        logging.info(f"Player {self.player_id} ended turn with:\n"
+                     f"{self.action_manager.used_civil_actions} civil actions and {self.action_manager.used_military_actions} military actions\n"
+                     f"{self.resource_manager.get_resource_summary()}")
 
         # Execute production phase
         production_results = self.execute_production_phase()
@@ -328,7 +332,7 @@ class PlayerBoard:
         """
         food_cost = self.get_population_cost()
         current_food = self.resource_manager.get_resources().get('food', 0)
-        has_yellow_tokens = self.worker_manager.can_increase_population()
+        has_yellow_tokens = self.can_increase_population()
 
         can_increase = current_food >= food_cost and has_yellow_tokens
 
@@ -345,54 +349,6 @@ class PlayerBoard:
             'food_cost': food_cost,
             'current_food': current_food,
             'has_yellow_tokens': has_yellow_tokens
-        }
-
-    def can_assign_worker_to_technology(self, tech_name: str) -> dict:
-        """Check if can assign worker to a technology with detailed information
-
-        Args:
-            tech_name (str): Name of the technology
-
-        Returns:
-            dict: {
-                'can_assign': bool,
-                'reason': str,
-                'has_technology': bool,
-                'has_workers': bool,
-                'material_cost': int,
-                'current_materials': int
-            }
-        """
-        has_workers = self.worker_manager.get_available_workers() > 0
-        has_technology = self.card_manager.has_technology(tech_name)
-
-        # Get material cost for worker assignment
-        building = self.card_manager.get_building_by_name(tech_name)
-        material_cost = 0
-        if building and hasattr(building, 'build_cost'):
-            material_cost = building.build_cost
-
-        current_materials = self.resource_manager.get_resources().get('material', 0)
-        has_enough_materials = current_materials >= material_cost
-
-        can_assign = has_workers and has_technology and has_enough_materials
-
-        if not has_technology:
-            reason = f"Tecnología no disponible en el tablero: {tech_name}"
-        elif not has_workers:
-            reason = "No hay trabajadores disponibles"
-        elif not has_enough_materials:
-            reason = f"Materiales insuficientes: necesitas {material_cost}, tienes {current_materials}"
-        else:
-            reason = "Puede asignar trabajador"
-
-        return {
-            'can_assign': can_assign,
-            'reason': reason,
-            'has_technology': has_technology,
-            'has_workers': has_workers,
-            'material_cost': material_cost,
-            'current_materials': current_materials
         }
 
     def can_research_technology(self, card_name: str, science_cost: int = 0) -> dict:
@@ -437,53 +393,46 @@ class PlayerBoard:
             'current_science': current_science
         }
 
-    def can_build_building(self, card_name: str) -> dict:
+    def can_build_building(self, building: Building) -> dict:
         """Check if can build a building with detailed information
+        Build is to assign a worker to a building technology already built in the player's board.
 
         Args:
-            card_name (str): Name of the building card
+            building (Building)
 
         Returns:
             dict: {
                 'can_build': bool,
                 'reason': str,
-                'has_card_in_hand': bool,
+                'has_tecnology': bool,
                 'build_cost': int,
-                'current_materials': int
+                'current_materials': int,
+                'building_has_capacity': bool
             }
         """
-        has_card_in_hand = self.card_manager.has_card_in_hand(card_name)
-
-        # Get building card to check build cost
-        hand_cards = self.card_manager.get_hand_cards()
-        building_card = None
-        for card in hand_cards:
-            if card.name == card_name:
-                building_card = card
-                break
-
-        build_cost = 0
-        if building_card and hasattr(building_card, 'build_cost'):
-            build_cost = building_card.build_cost
-
+        has_tecnology = self.card_manager.has_technology(building.name)
         current_materials = self.resource_manager.get_resources().get('material', 0)
-        has_enough_materials = current_materials >= build_cost
+        has_enough_materials = current_materials >= building.build_cost
+        building_has_capacity = self.government.building_limit > building.num_assigned_workers
 
-        can_build = has_card_in_hand and has_enough_materials
+        can_build = building_has_capacity and has_enough_materials
 
-        if not has_card_in_hand:
-            reason = f"Carta no disponible en mano: {card_name}"
+        if not has_tecnology:
+            reason = f"Edificio no descubierto: {building.name}"
         elif not has_enough_materials:
-            reason = f"Materiales insuficientes: necesitas {build_cost}, tienes {current_materials}"
+            reason = f"Materiales insuficientes: necesitas {building.build_cost}, tienes {current_materials}"
+        elif not building_has_capacity:
+            reason = f"Capacidad de edificio alcanzada: {building.name} tiene {building.num_assigned_workers} trabajadores"
         else:
             reason = "Puede construir edificio"
 
         return {
             'can_build': can_build,
             'reason': reason,
-            'has_card_in_hand': has_card_in_hand,
-            'build_cost': build_cost,
-            'current_materials': current_materials
+            'has_technology': has_tecnology,
+            'build_cost': building.build_cost,
+            'current_materials': current_materials,
+            'building_has_capacity': building_has_capacity
         }
 
     def get_available_actions_summary(self) -> dict:
@@ -502,5 +451,8 @@ class PlayerBoard:
             'available_workers': self.worker_manager.get_available_workers(),
             'resources': self.resource_manager.get_resources(),
             'hand_cards': [card.name for card in self.card_manager.get_hand_cards()],
-            'developed_technologies': list(self.card_manager.get_all_technology_names())
+            'production_buildings': list(self.card_manager.get_urban_buildings()),
+            'urban_buildings': list(self.card_manager.get_production_buildings()),
+            'wonders': [wonder.name for wonder in self.card_manager.get_wonders()],
+            'leader': self.card_manager.leader.name if self.card_manager.leader else None
         }

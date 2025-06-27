@@ -57,7 +57,7 @@ def setup_production_test_state(player_board):
     print("🔧 TEST UTILITY: Configurando estado para pruebas de producción...")    # Asigna un trabajador a cada tecnología
     for tech in initial_technologies:
         if (player_board.yellow_reserves['available_workers'] > 0 and
-            player_board.has_technology(tech)):
+            player_board.has_technology(tech.name)):
             player_board.assign_worker_to_building(tech)
             print(f"   ✓ Trabajador asignado a {tech}")
 

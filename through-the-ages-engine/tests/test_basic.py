@@ -7,85 +7,69 @@ import os
 # Agrega src al path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
+from bots.base_bot import BotManager
+from database.connection import DatabaseConnection
+from game.cards import CardLoader
+from game.game_state import GameState
+
+
 def test_card_loading():
     """Prueba carga de cartas"""
     print("=== Test: Carga de Cartas ===")
-    try:
-        from game.cards import CardLoader
-        loader = CardLoader()
-        cards = loader.load_cards_from_csv()
-        print(f"✓ Cartas cargadas: {len(cards)}")
+    loader = CardLoader()
+    cards = loader.load_cards_from_csv()
+    print(f"✓ Cartas cargadas: {len(cards)}")
 
-        if len(cards) > 0:
-            print(f"✓ Primera carta: {cards[0].name}")
-        return True
-    except Exception as e:
-        print(f"✗ Error: {e}")
-        return False
+    if len(cards) > 0:
+        print(f"✓ Primera carta: {cards[0].name}")
+    return True
 
 def test_bot_creation():
     """Prueba creación de bots"""
     print("\n=== Test: Creación de Bots ===")
-    try:
-        from bots.base_bot import BotManager
-        manager = BotManager()
+    manager = BotManager()
 
-        # Crea bot algorítmico
-        algo_bot = manager.create_bot_instance("algorithmic", "test_algo", "TestAlgo", "medium")
-        print(f"✓ Bot algorítmico creado: {algo_bot.name}")
+    # Crea bot algorítmico
+    algo_bot = manager.create_bot_instance("algorithmic", "test_algo", "TestAlgo", "medium")
+    print(f"✓ Bot algorítmico creado: {algo_bot.name}")
 
-        # Crea bot IA
-        ai_bot = manager.create_bot_instance("ai", "test_ai", "TestAI", "medium")
-        print(f"✓ Bot IA creado: {ai_bot.name}")
+    # Crea bot IA
+    ai_bot = manager.create_bot_instance("ai", "test_ai", "TestAI", "medium")
+    print(f"✓ Bot IA creado: {ai_bot.name}")
 
-        return True
-    except Exception as e:
-        print(f"✗ Error: {e}")
-        return False
+    return True
 
 def test_game_state():
     """Prueba estado del juego"""
     print("\n=== Test: Estado del Juego ===")
-    try:
-        from game.game_state import GameState
+    game = GameState()
+    players = ["Bot1", "Bot2"]
+    bot_types = ["human", "algorithmic"]
 
-        game = GameState()
-        players = ["Bot1", "Bot2"]
-        bot_types = ["human", "algorithmic"]
+    game.initialize_game(players, bot_types)
+    print(f"✓ Juego inicializado con {len(players)} jugadores")
 
-        game.initialize_game(players, bot_types)
-        print(f"✓ Juego inicializado con {len(players)} jugadores")
+    current_player = game.get_current_player()
+    print(f"✓ Jugador actual: {current_player}")
 
-        current_player = game.get_current_player()
-        print(f"✓ Jugador actual: {current_player}")
+    actions = game.get_available_actions()
+    print(f"✓ Acciones disponibles: {len(actions)}")
 
-        actions = game.get_available_actions()
-        print(f"✓ Acciones disponibles: {len(actions)}")
-
-        return True
-    except Exception as e:
-        print(f"✗ Error: {e}")
-        return False
+    return True
 
 def test_database_connection():
     """Prueba conexión a base de datos"""
     print("\n=== Test: Conexión Base de Datos ===")
-    try:
-        from database.connection import DatabaseConnection
+    db = DatabaseConnection()
+    connected = db.connect()
 
-        db = DatabaseConnection()
-        connected = db.connect()
+    if connected:
+        print("✓ Conexión a MongoDB exitosa")
+        db.close()
+    else:
+        print("⚠ MongoDB no disponible (normal si no está configurado)")
 
-        if connected:
-            print("✓ Conexión a MongoDB exitosa")
-            db.close()
-        else:
-            print("⚠ MongoDB no disponible (normal si no está configurado)")
-
-        return True
-    except Exception as e:
-        print(f"⚠ MongoDB no disponible: {e}")
-        return True  # No es crítico para las pruebas básicas
+    return True
 
 def main():
     """Ejecuta todas las pruebas"""

@@ -20,7 +20,6 @@ def test_basic_functionality():
     )
 
     print(f"Created: {farm}")
-    print(f"Can assign worker: {farm.can_assign_worker()}")
 
     # Test worker assignment
     farm.assign_worker("worker_1")

@@ -13,8 +13,8 @@ This module manages:
 
 from typing import Dict, List, Optional, Union
 import logging
-from .card_loader import CardLoader
-from .card_classes import (
+from game.card_loader import CardLoader, load_initial_technologies
+from game.card_classes import (
     Card, ProductionBuilding, UrbanBuilding, Wonder,
     Leader, Government, Monument
 )
@@ -48,23 +48,19 @@ class PlayerCardManager:
 
     def _load_initial_cards(self):
         """Load initial Age A technologies and setup"""
-        try:
-            from .card_loader import load_initial_technologies
-            initial_cards = load_initial_technologies()
+        initial_cards = load_initial_technologies()
 
-            for card in initial_cards:
-                if isinstance(card, ProductionBuilding):
-                    self.add_production_building(card)
-                elif isinstance(card, UrbanBuilding):
-                    self.add_urban_building(card)
-                elif isinstance(card, Government):
-                    self.set_government(card)
-                else:
-                    # Handle other types in the future if needed
-                    logging.info(f"Player {self.player_id}: Skipping unknown card type '{type(card).__name__}' for '{card.name}'")
+        for card in initial_cards:
+            if isinstance(card, ProductionBuilding):
+                self.add_production_building(card)
+            elif isinstance(card, UrbanBuilding):
+                self.add_urban_building(card)
+            elif isinstance(card, Government):
+                self.set_government(card)
+            else:
+                # Handle other types in the future if needed
+                logging.info(f"Player {self.player_id}: Skipping unknown card type '{type(card).__name__}' for '{card.name}'")
 
-        except Exception as e:
-            logging.warning(f"Failed to load initial cards for player {self.player_id}: {e}")
 
     # === PRODUCTION BUILDINGS ===
 

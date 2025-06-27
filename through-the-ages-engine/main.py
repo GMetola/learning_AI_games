@@ -8,6 +8,10 @@ import logging
 # Agrega el directorio src al path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
+from src.game.cards import CardLoader
+from src.ui.console_ui import ConsoleUI
+
+
 def main():
     """Función principal"""
     print("Through the Ages - Motor de Juego")
@@ -31,13 +35,8 @@ def main():
 
 def start_console_interface():
     """Inicia la interfaz de consola"""
-    try:
-        from src.ui.console_ui import ConsoleUI
-        ui = ConsoleUI()
-        ui.start_interactive_session()
-    except ImportError as e:
-        print(f"Error importando módulos: {e}")
-        print("Asegúrese de que todas las dependencias estén instaladas")
+    ui = ConsoleUI()
+    ui.start_interactive_session()
 
 def start_api_server():
     """Inicia el servidor API"""
@@ -51,33 +50,28 @@ def start_api_server():
 
 def test_card_loading():
     """Prueba la carga de cartas desde CSV"""
-    try:
-        from src.game.cards import CardLoader
+    print("Cargando cartas desde CSV...")
+    loader = CardLoader()
+    cards = loader.load_cards_from_csv()
 
-        print("Cargando cartas desde CSV...")
-        loader = CardLoader()
-        cards = loader.load_cards_from_csv()
+    print(f"Cartas cargadas: {len(cards)}")
 
-        print(f"Cartas cargadas: {len(cards)}")
+    if cards:
+        print("\nPrimeras 5 cartas:")
+        for i, card in enumerate(cards[:5]):
+            print(f"{i+1}. {card.name} ({card.category}, Era {card.age})")
+            print(f"   Coste tech: {card.tech_cost}, Coste construcción: {card.build_cost}")
 
-        if cards:
-            print("\nPrimeras 5 cartas:")
-            for i, card in enumerate(cards[:5]):
-                print(f"{i+1}. {card.name} ({card.category}, Era {card.age})")
-                print(f"   Coste tech: {card.tech_cost}, Coste construcción: {card.build_cost}")
+    # Muestra estadísticas por categoría
+    categories = {}
+    for card in cards:
+        cat = card.category
+        categories[cat] = categories.get(cat, 0) + 1
 
-        # Muestra estadísticas por categoría
-        categories = {}
-        for card in cards:
-            cat = card.category
-            categories[cat] = categories.get(cat, 0) + 1
+    print(f"\nCartas por categoría:")
+    for category, count in categories.items():
+        print(f"  {category}: {count}")
 
-        print(f"\nCartas por categoría:")
-        for category, count in categories.items():
-            print(f"  {category}: {count}")
-
-    except Exception as e:
-        print(f"Error cargando cartas: {e}")
 
 if __name__ == "__main__":    # Configura logging
     logging.basicConfig(
